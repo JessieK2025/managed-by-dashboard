@@ -701,6 +701,80 @@
         // Set current date
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
         
+        // Mock data for different brokers
+        const brokerData = {
+            all: {
+                metrics: {
+                    totalTasks: '3,951',
+                    completionRate: '17.5%',
+                    completedCount: '693',
+                    activeBrokers: '12',
+                    eligibleLives: '1.22M'
+                },
+                brokers: ['broker1', 'broker2', 'broker3', 'broker4', 'broker5', 'broker6']
+            },
+            mcgohan: {
+                metrics: {
+                    totalTasks: '1,245',
+                    completionRate: '23.0%',
+                    completedCount: '286',
+                    activeBrokers: '1',
+                    eligibleLives: '425K'
+                },
+                brokers: ['broker1']
+            },
+            baldwin: {
+                metrics: {
+                    totalTasks: '892',
+                    completionRate: '18.0%',
+                    completedCount: '161',
+                    activeBrokers: '1',
+                    eligibleLives: '298K'
+                },
+                brokers: ['broker2']
+            },
+            mcgriff: {
+                metrics: {
+                    totalTasks: '567',
+                    completionRate: '15.0%',
+                    completedCount: '85',
+                    activeBrokers: '1',
+                    eligibleLives: '189K'
+                },
+                brokers: ['broker3']
+            },
+            'marsh-va': {
+                metrics: {
+                    totalTasks: '445',
+                    completionRate: '21.0%',
+                    completedCount: '93',
+                    activeBrokers: '1',
+                    eligibleLives: '145K'
+                },
+                brokers: ['broker4']
+            },
+            cac: {
+                metrics: {
+                    totalTasks: '334',
+                    completionRate: '12.0%',
+                    completedCount: '40',
+                    activeBrokers: '1',
+                    eligibleLives: '89K'
+                },
+                brokers: ['broker5']
+            },
+            'marsh-fl': {
+                metrics: {
+                    totalTasks: '278',
+                    completionRate: '19.0%',
+                    completedCount: '53',
+                    activeBrokers: '1',
+                    eligibleLives: '67K'
+                },
+                brokers: ['broker6']
+            }
+        };
+        
         // Toggle broker details
         function toggleBroker(brokerId) {
             const details = document.getElementById('details' + brokerId.slice(-1));
@@ -710,12 +784,128 @@
             chevron.classList.toggle('expanded');
         }
         
+        // Update metrics display
+        function updateMetrics(data) {
+            document.getElementById('totalTasks').textContent = data.totalTasks;
+            document.getElementById('completionRate').textContent = data.completionRate;
+            document.getElementById('activeBrokers').textContent = data.activeBrokers;
+            document.getElementById('eligibleLives').textContent = data.eligibleLives;
+            
+            // Update the completion subtitle
+            const completionSubtitle = document.querySelector('#completionRate').parentElement.querySelector('.metric-subtitle');
+            completionSubtitle.textContent = data.completedCount + ' completed tasks';
+        }
+        
+        // Show/hide broker cards based on filter
+        function filterBrokers(selectedBrokers) {
+            const allBrokers = ['broker1', 'broker2', 'broker3', 'broker4', 'broker5', 'broker6'];
+            
+            allBrokers.forEach(brokerId => {
+                const brokerElement = document.querySelector(`[onclick="toggleBroker('${brokerId}')"]`).parentElement;
+                if (selectedBrokers.includes(brokerId)) {
+                    brokerElement.style.display = 'block';
+                    // Add a fade-in animation
+                    brokerElement.style.opacity = '0';
+                    setTimeout(() => {
+                        brokerElement.style.opacity = '1';
+                        brokerElement.style.transition = 'opacity 0.3s ease';
+                    }, 100);
+                } else {
+                    brokerElement.style.display = 'none';
+                }
+            });
+        }
+        
+        // Update insights based on selection
+        function updateInsights(selectedBroker) {
+            const priorityList = document.querySelector('.insights-column ul');
+            const successList = document.querySelector('.insights-column:last-child ul');
+            
+            if (selectedBroker === 'all') {
+                priorityList.innerHTML = `
+                    <li>50.2% tasks still "Not Started" - need acceleration</li>
+                    <li>242 tasks escalated - require immediate attention</li>
+                    <li>Focus on top 3 brokers handling 80% of volume</li>
+                    <li>Implement automated follow-up for stalled tasks</li>
+                    <li>Review escalation processes for efficiency</li>
+                `;
+                successList.innerHTML = `
+                    <li>34.3% completion rate (Complete + Broker Provided)</li>
+                    <li>Strong engagement with 72 different carriers</li>
+                    <li>1.2M+ eligible lives being managed successfully</li>
+                    <li>Consistent progress across major brokers</li>
+                    <li>Effective collaboration with partner organizations</li>
+                `;
+            } else {
+                const brokerNames = {
+                    mcgohan: 'McGohan Brabender',
+                    baldwin: 'The Baldwin Group - Southwest',
+                    mcgriff: 'McGriff Insurance - Blue Ridge',
+                    'marsh-va': 'Marsh McLennan - Virginia',
+                    cac: 'CAC Agency',
+                    'marsh-fl': 'Marsh McLennan - Florida'
+                };
+                
+                const brokerName = brokerNames[selectedBroker];
+                const data = brokerData[selectedBroker];
+                
+                priorityList.innerHTML = `
+                    <li>Focus on ${brokerName} performance optimization</li>
+                    <li>Review escalated tasks for this broker</li>
+                    <li>Implement targeted follow-up processes</li>
+                    <li>Assess carrier relationships and efficiency</li>
+                    <li>Monitor completion rate trends over time</li>
+                `;
+                successList.innerHTML = `
+                    <li>${data.metrics.completionRate} completion rate for ${brokerName}</li>
+                    <li>${data.metrics.totalTasks} total tasks being managed</li>
+                    <li>${data.metrics.eligibleLives} eligible lives covered</li>
+                    <li>Active engagement with carrier partners</li>
+                    <li>Consistent task processing and follow-through</li>
+                `;
+            }
+        }
+        
         // Broker filtering functionality
         document.getElementById('brokerSelect').addEventListener('change', function() {
             const selectedBroker = this.value;
-            console.log('Selected broker:', selectedBroker);
-            // Here you would implement the filtering logic
-            // For now, just log the selection
+            console.log('Filtering by broker:', selectedBroker);
+            
+            // Update metrics
+            const data = brokerData[selectedBroker];
+            if (data) {
+                updateMetrics(data.metrics);
+                filterBrokers(data.brokers);
+                updateInsights(selectedBroker);
+                
+                // Update section title
+                const sectionTitle = document.querySelector('.section-title');
+                if (selectedBroker === 'all') {
+                    sectionTitle.textContent = 'Broker Performance Analysis';
+                } else {
+                    const brokerNames = {
+                        mcgohan: 'McGohan Brabender',
+                        baldwin: 'The Baldwin Group - Southwest',
+                        mcgriff: 'McGriff Insurance - Blue Ridge',
+                        'marsh-va': 'Marsh McLennan - Virginia',
+                        cac: 'CAC Agency',
+                        'marsh-fl': 'Marsh McLennan - Florida'
+                    };
+                    sectionTitle.textContent = `${brokerNames[selectedBroker]} - Detailed Analysis`;
+                }
+                
+                // Re-animate progress bars
+                setTimeout(() => {
+                    const progressBars = document.querySelectorAll('.progress-fill');
+                    progressBars.forEach(bar => {
+                        const width = bar.style.width;
+                        bar.style.width = '0%';
+                        setTimeout(() => {
+                            bar.style.width = width;
+                        }, 100);
+                    });
+                }, 100);
+            }
         });
         
         // Animate progress bars on load
