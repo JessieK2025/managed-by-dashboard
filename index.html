@@ -3,924 +3,1367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThreeFlow Managed Pilot Dashboard</title>
+    <title>ThreeFlow Pilot - Project Management Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
+        :root {
+            --primary-green: #00B980;
+            --primary-blue: #000099;
+            --accent-green-1: #1A7848;
+            --accent-green-2: #53B684;
+            --accent-green-3: #85DABA;
+            --accent-blue-1: #7A7FF5;
+            --accent-blue-2: #A3A5F9;
+            --accent-purple-1: #8A288E;
+            --accent-purple-2: #B263C8;
+            --accent-purple-3: #D89CE8;
+            --accent-yellow-1: #D7CC43;
+            --accent-yellow-2: #EAE950;
+            --accent-yellow-3: #FFFB99;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Lato', sans-serif;
-            background-color: #f9fafb;
-            color: #1f2937;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
             line-height: 1.6;
         }
-        
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-blue) 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 1rem;
         }
-        
-        /* Header */
-        .header {
+
+        .dashboard-nav {
             background: white;
-            border-bottom: 4px solid #00B980;
-            padding: 32px 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
-        
-        .header h1 {
-            color: #000099;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .header p {
-            color: #6b7280;
-            font-size: 1.1rem;
-        }
-        
-        .header-controls {
+
+        .nav-tabs {
             display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-top: 20px;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
-        
-        .broker-select {
-            padding: 12px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            font-family: 'Lato', sans-serif;
-            font-size: 14px;
-            color: #374151;
-            min-width: 200px;
+
+        .nav-tab {
+            background: #f8f9fa;
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
         }
-        
-        .broker-select:focus {
-            outline: none;
-            border-color: #00B980;
-        }
-        
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin: 32px 0;
-        }
-        
-        .metric-card {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 6px solid;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-        
-        .metric-card.primary { border-left-color: #00B980; }
-        .metric-card.success { border-left-color: #1A7848; }
-        .metric-card.secondary { border-left-color: #000099; }
-        .metric-card.purple { border-left-color: #8A288E; }
-        
-        .metric-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-        
-        .metric-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
+
+        .nav-tab.active,
+        .nav-tab:hover {
+            background: var(--primary-green);
             color: white;
         }
-        
-        .metric-icon.primary { background-color: #00B980; }
-        .metric-icon.success { background-color: #1A7848; }
-        .metric-icon.secondary { background-color: #000099; }
-        .metric-icon.purple { background-color: #8A288E; }
-        
-        .metric-title {
-            color: #6b7280;
-            font-size: 0.875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
-        }
-        
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .metric-subtitle {
-            color: #6b7280;
-            font-size: 0.875rem;
-        }
-        
-        /* Insights Section */
-        .insights-section {
-            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 16px;
-            padding: 32px;
-            margin: 40px 0;
-        }
-        
-        .insights-title {
-            color: #92400e;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .insights-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 32px;
-        }
-        
-        .insights-column h4 {
-            color: #1f2937;
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 16px;
-        }
-        
-        .insights-column ul {
-            list-style: none;
-        }
-        
-        .insights-column li {
-            color: #374151;
-            margin-bottom: 8px;
-            padding: 8px 12px;
-            background: rgba(255,255,255,0.5);
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-        
-        /* Broker Performance */
-        .brokers-section {
+
+        .section {
             background: white;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin: 40px 0;
-        }
-        
-        .section-title {
-            color: #000099;
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 32px;
-            border-bottom: 3px solid #00B980;
-            padding-bottom: 16px;
-        }
-        
-        .broker-item {
-            border: 2px solid #e5e7eb;
             border-radius: 12px;
-            margin-bottom: 20px;
-            overflow: hidden;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section h2 {
+            color: var(--primary-blue);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--accent-green-2), var(--accent-green-3));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h3 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .file-upload-section {
+            background: var(--accent-yellow-3);
+            border: 2px dashed var(--accent-yellow-1);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .file-upload-section h3 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            margin: 1rem 0;
+        }
+
+        .btn {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
             transition: all 0.3s ease;
         }
-        
-        .broker-item:hover {
-            border-color: #00B980;
-            box-shadow: 0 4px 12px rgba(0,185,128,0.15);
+
+        .btn:hover {
+            background: var(--accent-green-1);
+            transform: translateY(-2px);
         }
-        
+
+        .broker-section {
+            margin-bottom: 3rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
         .broker-header {
-            padding: 24px;
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            background: var(--primary-blue);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .broker-header:hover {
+            background: var(--accent-blue-1);
+        }
+
+        .broker-content {
+            display: none;
+        }
+
+        .broker-content.active {
+            display: block;
+        }
+
+        .checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .checklist-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-green-2);
+        }
+
+        .checklist-section h4 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        .status-select {
+            padding: 0.3rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .status-blocked { background-color: #ff6b6b; }
+        .status-paused { background-color: #feca57; }
+        .status-done { background-color: #48dbfb; }
+        .status-needs-attention { background-color: #ff9ff3; }
+
+        .notes-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            font-family: 'Lato', sans-serif;
+        }
+
+        .topics-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            border-left: 4px solid var(--accent-purple-2);
+        }
+
+        .topic-item {
+            display: grid;
+            grid-template-columns: 100px 1fr 150px 120px 100px;
+            gap: 1rem;
+            align-items: start;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .add-topic-btn {
+            background: var(--accent-purple-2);
+            margin-bottom: 1rem;
+        }
+
+        .topic-type-select {
+            padding: 0.3rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .date-input {
+            padding: 0.3rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .broker-selector {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .broker-selector select {
+            padding: 0.7rem 1rem;
+            border: 2px solid var(--primary-green);
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-family: 'Lato', sans-serif;
+            background: white;
+            min-width: 300px;
+        }
+
+        .broker-detail-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 5px solid var(--primary-green);
+        }
+
+        .broker-detail-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f1f3f4;
         }
-        
-        .broker-info h3 {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: #1f2937;
-            margin-bottom: 8px;
+
+        .broker-detail-header h3 {
+            color: var(--primary-blue);
+            font-size: 1.8rem;
+            margin: 0;
         }
-        
-        .broker-stats {
-            color: #6b7280;
-            font-size: 0.95rem;
-            margin-bottom: 12px;
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
-        
-        .progress-container {
-            width: 100%;
-        }
-        
+
         .progress-bar {
-            width: 100%;
-            height: 10px;
-            background-color: #e5e7eb;
-            border-radius: 5px;
+            width: 200px;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
             overflow: hidden;
         }
-        
+
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #00B980 0%, #1A7848 100%);
-            border-radius: 5px;
-            transition: width 0.8s ease;
+            background: linear-gradient(90deg, var(--primary-green), var(--accent-green-2));
+            transition: width 0.3s ease;
         }
-        
-        .completion-rate {
-            font-size: 2rem;
-            font-weight: 700;
-            text-align: center;
+
+        .progress-text {
+            font-weight: bold;
+            color: var(--primary-blue);
         }
-        
-        .completion-rate.high { color: #1A7848; }
-        .completion-rate.medium { color: #D7CC43; }
-        .completion-rate.low { color: #ef4444; }
-        
-        .broker-details {
-            padding: 24px;
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            display: none;
-        }
-        
-        .broker-details.expanded {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .details-grid {
+
+        .detail-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
-        
-        .detail-item {
-            text-align: center;
-            padding: 16px;
+
+        .detail-stat {
+            background: linear-gradient(135deg, var(--accent-blue-2), var(--accent-purple-3));
+            color: white;
+            padding: 1.2rem;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .detail-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        
-        .detail-label {
-            color: #6b7280;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .detail-item.complete .detail-value { color: #1A7848; }
-        .detail-item.pending .detail-value { color: #D7CC43; }
-        .detail-item.escalated .detail-value { color: #ef4444; }
-        .detail-item.carriers .detail-value { color: #8A288E; }
-        
-        /* Footer */
-        .footer {
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            padding: 32px 0;
-            margin-top: 48px;
             text-align: center;
-            color: #6b7280;
         }
-        
-        .threeflow-brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 16px;
+
+        .detail-stat h4 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
         }
-        
-        .brand-dot {
-            width: 20px;
-            height: 20px;
-            background: linear-gradient(135deg, #00B980 0%, #1A7848 100%);
-            border-radius: 50%;
+
+        .detail-stat p {
+            font-size: 1rem;
+            opacity: 0.9;
         }
-        
-        .chevron {
-            transition: transform 0.3s ease;
-            color: #6b7280;
+
+        .data-table {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
         }
-        
-        .chevron.expanded {
-            transform: rotate(90deg);
+
+        .data-table h4 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
         }
-        
-        /* Responsive */
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .broker-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .broker-table th {
+            background: var(--primary-blue);
+            color: white;
+            padding: 0.8rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .broker-table td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .broker-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .broker-table tr:hover {
+            background: var(--accent-yellow-3);
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-not-started { background: #ffebee; color: #c62828; }
+        .status-pending { background: #fff3e0; color: #ef6c00; }
+        .status-escalated { background: #fce4ec; color: #ad1457; }
+        .status-complete { background: #e8f5e8; color: #2e7d32; }
+        .status-broker-provided { background: #e3f2fd; color: #1565c0; }
+
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .mini-chart {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mini-chart h5 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
         @media (max-width: 768px) {
-            .header h1 { font-size: 2rem; }
-            .metrics-grid { grid-template-columns: 1fr; }
-            .insights-grid { grid-template-columns: 1fr; }
-            .broker-header { flex-direction: column; text-align: center; gap: 16px; }
-            .details-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .broker-detail-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .progress-indicator {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
+    <header class="header">
         <div class="container">
-            <h1>Managed by Three Flow Pilot</h1>
-            <p>Document Collection Progress Dashboard</p>
-            <div class="header-controls">
-                <select class="broker-select" id="brokerSelect">
-                    <option value="all">All Brokers</option>
-                    <option value="mcgohan">McGohan Brabender</option>
-                    <option value="baldwin">The Baldwin Group - Southwest</option>
-                    <option value="mcgriff">McGriff Insurance - Blue Ridge</option>
-                    <option value="marsh-va">Marsh McLennan - Virginia</option>
-                    <option value="cac">CAC Agency</option>
-                    <option value="marsh-fl">Marsh McLennan - Florida</option>
+            <h1>ThreeFlow Pilot Dashboard</h1>
+            <p>Project Management Progress - Executive Leadership View</p>
+        </div>
+    </header>
+
+    <nav class="dashboard-nav">
+        <div class="container">
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="showSection('overview')">Overview</div>
+                <div class="nav-tab" onclick="showSection('broker-management')">Broker Management</div>
+                <div class="nav-tab" onclick="showSection('broker-sheets')">Broker Detail Sheets</div>
+                <div class="nav-tab" onclick="showSection('analytics')">Analytics</div>
+                <div class="nav-tab" onclick="showSection('data-upload')">Data Upload</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Overview Section -->
+        <section id="overview" class="section active">
+            <h2>Project Overview</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="total-tasks">3,951</h3>
+                    <p>Total Tasks</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="total-brokers">11</h3>
+                    <p>Active Brokers</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="total-carriers">70</h3>
+                    <p>Carriers</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="completion-rate">35%</h3>
+                    <p>Completion Rate</p>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Collection Status Breakdown</h3>
+                    <canvas id="collectionStatusChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Top 10 Brokers by Task Count</h3>
+                    <canvas id="brokerChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Renewal Date Distribution</h3>
+                    <canvas id="renewalDateChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Top 10 Carriers by Task Count</h3>
+                    <canvas id="carrierChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Broker Detail Sheets Section -->
+        <section id="broker-sheets" class="section">
+            <h2>Broker Detail Sheets</h2>
+            <div class="broker-selector">
+                <select id="broker-select" onchange="showBrokerDetail(this.value)">
+                    <option value="">Select a Broker...</option>
                 </select>
             </div>
-        </div>
-    </div>
+            <div id="broker-detail-content">
+                <p>Please select a broker to view detailed breakdown.</p>
+            </div>
+        </section>
 
-    <div class="container">
-        <!-- Key Metrics -->
-        <div class="metrics-grid">
-            <div class="metric-card primary">
-                <div class="metric-header">
-                    <div>
-                        <div class="metric-title">Total Tasks</div>
-                        <div class="metric-value" id="totalTasks">3,951</div>
-                        <div class="metric-subtitle">Active collection tasks</div>
-                    </div>
-                    <div class="metric-icon primary">📄</div>
-                </div>
+        <!-- Broker Management Section -->
+        <section id="broker-management" class="section">
+            <h2>Broker Management</h2>
+            <div id="broker-list">
+                <!-- Broker sections will be dynamically generated here -->
             </div>
-            
-            <div class="metric-card success">
-                <div class="metric-header">
-                    <div>
-                        <div class="metric-title">Completion Rate</div>
-                        <div class="metric-value" id="completionRate">17.5%</div>
-                        <div class="metric-subtitle">693 completed tasks</div>
-                    </div>
-                    <div class="metric-icon success">✅</div>
-                </div>
-            </div>
-            
-            <div class="metric-card secondary">
-                <div class="metric-header">
-                    <div>
-                        <div class="metric-title">Active Brokers</div>
-                        <div class="metric-value" id="activeBrokers">12</div>
-                        <div class="metric-subtitle">Partner organizations</div>
-                    </div>
-                    <div class="metric-icon secondary">👥</div>
-                </div>
-            </div>
-            
-            <div class="metric-card purple">
-                <div class="metric-header">
-                    <div>
-                        <div class="metric-title">Eligible Lives</div>
-                        <div class="metric-value" id="eligibleLives">1.22M</div>
-                        <div class="metric-subtitle">Total covered individuals</div>
-                    </div>
-                    <div class="metric-icon purple">🏥</div>
-                </div>
-            </div>
-        </div>
+        </section>
 
-        <!-- Key Insights -->
-        <div class="insights-section">
-            <div class="insights-title">
-                ⚠️ Key Insights & Action Items
-            </div>
-            <div class="insights-grid">
-                <div class="insights-column">
-                    <h4 style="color: #000099;">⚠️ Priority Actions:</h4>
-                    <ul>
-                        <li>50.2% tasks still "Not Started" - need acceleration</li>
-                        <li>242 tasks escalated - require immediate attention</li>
-                        <li>Focus on top 3 brokers handling 80% of volume</li>
-                        <li>Implement automated follow-up for stalled tasks</li>
-                        <li>Review escalation processes for efficiency</li>
-                    </ul>
+        <!-- Analytics Section -->
+        <section id="analytics" class="section">
+            <h2>Advanced Analytics</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Broker vs Collection Status Matrix</h3>
+                    <canvas id="matrixChart"></canvas>
                 </div>
-                <div class="insights-column">
-                    <h4 style="color: #1A7848;">✅ Successes:</h4>
-                    <ul>
-                        <li>34.3% completion rate (Complete + Broker Provided)</li>
-                        <li>Strong engagement with 72 different carriers</li>
-                        <li>1.2M+ eligible lives being managed successfully</li>
-                        <li>Consistent progress across major brokers</li>
-                        <li>Effective collaboration with partner organizations</li>
-                    </ul>
+                <div class="chart-container">
+                    <h3>Progress Trends</h3>
+                    <canvas id="trendsChart"></canvas>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Broker Performance -->
-        <div class="brokers-section">
-            <h2 class="section-title">Broker Performance Analysis</h2>
+        <!-- Data Upload Section -->
+        <section id="data-upload" class="section">
+            <h2>Data Management</h2>
             
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker1')">
-                    <div class="broker-info">
-                        <h3>McGohan Brabender</h3>
-                        <div class="broker-stats">1,245 tasks • 15 carriers • 425,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 23%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate high">23%</div>
-                        <span class="chevron" id="chevron1">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details1">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">286</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">124</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">78</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">15</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="file-upload-section">
+                <h3>Upload New CSV Data</h3>
+                <p>Upload your weekly CSV export to update the dashboard statistics while preserving your notes and progress tracking.</p>
+                <input type="file" id="csvFile" class="file-input" accept=".csv" />
+                <button class="btn" onclick="uploadCSV()">Upload & Update Dashboard</button>
             </div>
-            
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker2')">
-                    <div class="broker-info">
-                        <h3>The Baldwin Group - Southwest</h3>
-                        <div class="broker-stats">892 tasks • 12 carriers • 298,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 18%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate medium">18%</div>
-                        <span class="chevron" id="chevron2">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details2">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">161</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">89</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">54</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">12</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker3')">
-                    <div class="broker-info">
-                        <h3>McGriff Insurance - Blue Ridge</h3>
-                        <div class="broker-stats">567 tasks • 9 carriers • 189,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 15%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate medium">15%</div>
-                        <span class="chevron" id="chevron3">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details3">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">85</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">57</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">34</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">9</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker4')">
-                    <div class="broker-info">
-                        <h3>Marsh McLennan - Virginia</h3>
-                        <div class="broker-stats">445 tasks • 8 carriers • 145,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 21%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate high">21%</div>
-                        <span class="chevron" id="chevron4">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details4">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">93</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">44</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">27</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">8</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker5')">
-                    <div class="broker-info">
-                        <h3>CAC Agency</h3>
-                        <div class="broker-stats">334 tasks • 6 carriers • 89,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 12%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate low">12%</div>
-                        <span class="chevron" id="chevron5">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details5">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">40</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">33</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">20</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">6</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="broker-item">
-                <div class="broker-header" onclick="toggleBroker('broker6')">
-                    <div class="broker-info">
-                        <h3>Marsh McLennan - Florida</h3>
-                        <div class="broker-stats">278 tasks • 7 carriers • 67,000 lives</div>
-                        <div class="progress-container">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 19%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="completion-rate medium">19%</div>
-                        <span class="chevron" id="chevron6">▶</span>
-                    </div>
-                </div>
-                <div class="broker-details" id="details6">
-                    <div class="details-grid">
-                        <div class="detail-item complete">
-                            <div class="detail-value">53</div>
-                            <div class="detail-label">Complete</div>
-                        </div>
-                        <div class="detail-item pending">
-                            <div class="detail-value">28</div>
-                            <div class="detail-label">Pending</div>
-                        </div>
-                        <div class="detail-item escalated">
-                            <div class="detail-value">17</div>
-                            <div class="detail-label">Escalated</div>
-                        </div>
-                        <div class="detail-item carriers">
-                            <div class="detail-value">7</div>
-                            <div class="detail-label">Carriers</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="footer">
-        <div class="container">
-            <p>Last updated: <span id="currentDate"></span> | Data source: ThreeFlow Workspace</p>
-            <div class="threeflow-brand">
-                <div class="brand-dot"></div>
-                <span style="font-weight: 600; color: #1f2937;">ThreeFlow</span>
+            <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-top: 2rem;">
+                <h4 style="color: var(--primary-blue); margin-bottom: 1rem;">Instructions for Preserving Notes</h4>
+                <p><strong>The dashboard automatically preserves your broker notes and topics when you upload new data.</strong></p>
+                <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                    <li>Your checklist progress and notes are stored locally in your browser</li>
+                    <li>Topics and their statuses are maintained across uploads</li>
+                    <li>Only statistical data (task counts, statuses, dates) are updated from the new CSV</li>
+                    <li>To backup your notes: Use your browser's export/import bookmarks feature or take screenshots</li>
+                    <li>For team sharing: Copy the HTML file to a shared drive and each team member can maintain their own notes</li>
+                </ul>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script>
-        // Set current date
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
-        
-        // Mock data for different brokers
-        const brokerData = {
-            all: {
-                metrics: {
-                    totalTasks: '3,951',
-                    completionRate: '17.5%',
-                    completedCount: '693',
-                    activeBrokers: '12',
-                    eligibleLives: '1.22M'
-                },
-                brokers: ['broker1', 'broker2', 'broker3', 'broker4', 'broker5', 'broker6']
+        // Global data storage
+        let dashboardData = [];
+        let brokerNotes = JSON.parse(localStorage.getItem('threeflow-broker-notes') || '{}');
+        let brokerTopics = JSON.parse(localStorage.getItem('threeflow-broker-topics') || '{}');
+        let brokerDetailCharts = {};
+
+        // Initialize with sample data based on actual CSV structure
+        const sampleData = [
+            {
+                "Task ID": "86b667va6",
+                "Task Name": "Perry Township (Franklin County): Voluntary Life / AD&D",
+                "Parent Name": "Perry Township (Franklin County)",
+                "Broker Name (short text)": "McGohan Brabender",
+                "Carrier (short text)": "Standard",
+                "Status": "set up",
+                "Collection Status (drop down)": "Not started",
+                "Renewal Doc Status (drop down)": "Renewal Not Collected",
+                "Renewal date (date)": "Saturday, January 1st 2028",
+                "Eligible Lives (number)": 30
             },
-            mcgohan: {
-                metrics: {
-                    totalTasks: '1,245',
-                    completionRate: '23.0%',
-                    completedCount: '286',
-                    activeBrokers: '1',
-                    eligibleLives: '425K'
-                },
-                brokers: ['broker1']
-            },
-            baldwin: {
-                metrics: {
-                    totalTasks: '892',
-                    completionRate: '18.0%',
-                    completedCount: '161',
-                    activeBrokers: '1',
-                    eligibleLives: '298K'
-                },
-                brokers: ['broker2']
-            },
-            mcgriff: {
-                metrics: {
-                    totalTasks: '567',
-                    completionRate: '15.0%',
-                    completedCount: '85',
-                    activeBrokers: '1',
-                    eligibleLives: '189K'
-                },
-                brokers: ['broker3']
-            },
-            'marsh-va': {
-                metrics: {
-                    totalTasks: '445',
-                    completionRate: '21.0%',
-                    completedCount: '93',
-                    activeBrokers: '1',
-                    eligibleLives: '145K'
-                },
-                brokers: ['broker4']
-            },
-            cac: {
-                metrics: {
-                    totalTasks: '334',
-                    completionRate: '12.0%',
-                    completedCount: '40',
-                    activeBrokers: '1',
-                    eligibleLives: '89K'
-                },
-                brokers: ['broker5']
-            },
-            'marsh-fl': {
-                metrics: {
-                    totalTasks: '278',
-                    completionRate: '19.0%',
-                    completedCount: '53',
-                    activeBrokers: '1',
-                    eligibleLives: '67K'
-                },
-                brokers: ['broker6']
+            {
+                "Task ID": "86b667z96",
+                "Task Name": "T K Towing Inc: Basic Life / AD&D",
+                "Parent Name": "T K Towing Inc",
+                "Broker Name (short text)": "The Baldwin Group - Southwest",
+                "Carrier (short text)": "Blue Cross Blue Shield",
+                "Status": "set up",
+                "Collection Status (drop down)": "Complete",
+                "Renewal Doc Status (drop down)": "Renewal Collected",
+                "Renewal date (date)": "Sunday, November 1st 2026",
+                "Eligible Lives (number)": 20
             }
-        };
-        
-        // Toggle broker details
-        function toggleBroker(brokerId) {
-            const details = document.getElementById('details' + brokerId.slice(-1));
-            const chevron = document.getElementById('chevron' + brokerId.slice(-1));
-            
-            details.classList.toggle('expanded');
-            chevron.classList.toggle('expanded');
+        ];
+
+        // If no real data is loaded, use sample data
+        if (dashboardData.length === 0) {
+            dashboardData = sampleData;
         }
-        
-        // Update metrics display
-        function updateMetrics(data) {
-            document.getElementById('totalTasks').textContent = data.totalTasks;
-            document.getElementById('completionRate').textContent = data.completionRate;
-            document.getElementById('activeBrokers').textContent = data.activeBrokers;
-            document.getElementById('eligibleLives').textContent = data.eligibleLives;
+
+        // Navigation
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
             
-            // Update the completion subtitle
-            const completionSubtitle = document.querySelector('#completionRate').parentElement.querySelector('.metric-subtitle');
-            completionSubtitle.textContent = data.completedCount + ' completed tasks';
+            // Remove active from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active to clicked tab
+            event.target.classList.add('active');
         }
-        
-        // Show/hide broker cards based on filter
-        function filterBrokers(selectedBrokers) {
-            const allBrokers = ['broker1', 'broker2', 'broker3', 'broker4', 'broker5', 'broker6'];
-            
-            allBrokers.forEach(brokerId => {
-                const brokerElement = document.querySelector(`[onclick="toggleBroker('${brokerId}')"]`).parentElement;
-                if (selectedBrokers.includes(brokerId)) {
-                    brokerElement.style.display = 'block';
-                    // Add a fade-in animation
-                    brokerElement.style.opacity = '0';
-                    setTimeout(() => {
-                        brokerElement.style.opacity = '1';
-                        brokerElement.style.transition = 'opacity 0.3s ease';
-                    }, 100);
-                } else {
-                    brokerElement.style.display = 'none';
+
+        // Chart colors using ThreeFlow palette
+        const chartColors = [
+            '#00B980', '#000099', '#1A7848', '#53B684', '#85DABA',
+            '#7A7FF5', '#A3A5F9', '#8A288E', '#B263C8', '#D89CE8',
+            '#D7CC43', '#EAE950', '#FFFB99'
+        ];
+
+        // Initialize charts
+        function initCharts() {
+            // Collection Status Chart
+            const collectionCtx = document.getElementById('collectionStatusChart').getContext('2d');
+            new Chart(collectionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Not Started', 'Pending', 'Escalated', 'Complete', 'Broker Provided'],
+                    datasets: [{
+                        data: [1982, 369, 242, 693, 665],
+                        backgroundColor: chartColors.slice(0, 5)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Broker Chart
+            const brokerCtx = document.getElementById('brokerChart').getContext('2d');
+            new Chart(brokerCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Baldwin Group', 'McGohan Brabender', 'McGriff Insurance', 'Marsh McLennan MN/WI', 'Marsh McLennan FL'],
+                    datasets: [{
+                        label: 'Tasks',
+                        data: [1003, 813, 744, 443, 306],
+                        backgroundColor: chartColors[0]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Renewal Date Chart
+            const renewalCtx = document.getElementById('renewalDateChart').getContext('2d');
+            new Chart(renewalCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['10/1 Renewals', '11/1 Renewals', '10/1-1/1 Period', 'Other Dates'],
+                    datasets: [{
+                        data: [355, 214, 3351, 22],
+                        backgroundColor: [chartColors[1], chartColors[2], chartColors[3], chartColors[4]]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Carrier Chart
+            const carrierCtx = document.getElementById('carrierChart').getContext('2d');
+            new Chart(carrierCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Guardian', 'Principal', 'Mutual Of Omaha', 'UnitedHealthcare', 'Unum'],
+                    datasets: [{
+                        label: 'Tasks',
+                        data: [571, 517, 204, 203, 197],
+                        backgroundColor: chartColors[5]
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
-        
-        // Update insights based on selection
-        function updateInsights(selectedBroker) {
-            const priorityList = document.querySelector('.insights-column ul');
-            const successList = document.querySelector('.insights-column:last-child ul');
+
+        // Generate broker management sections
+        function generateBrokerSections() {
+            const brokers = getBrokerList();
+            populateBrokerSelector(brokers);
+
+            const brokerListContainer = document.getElementById('broker-list');
             
-            if (selectedBroker === 'all') {
-                priorityList.innerHTML = `
-                    <li>50.2% tasks still "Not Started" - need acceleration</li>
-                    <li>242 tasks escalated - require immediate attention</li>
-                    <li>Focus on top 3 brokers handling 80% of volume</li>
-                    <li>Implement automated follow-up for stalled tasks</li>
-                    <li>Review escalation processes for efficiency</li>
+            brokers.forEach(broker => {
+                const brokerSection = document.createElement('div');
+                brokerSection.className = 'broker-section';
+                brokerSection.innerHTML = `
+                    <div class="broker-header" onclick="toggleBroker('${broker}')">
+                        <h3>${broker}</h3>
+                    </div>
+                    <div class="broker-content" id="broker-${broker.replace(/[^a-zA-Z0-9]/g, '')}">
+                        <div class="checklist">
+                            <div class="checklist-section">
+                                <h4>External Tasks</h4>
+                                ${generateChecklistItems(broker, 'external')}
+                            </div>
+                            <div class="checklist-section">
+                                <h4>Internal Tasks</h4>
+                                ${generateChecklistItems(broker, 'internal')}
+                            </div>
+                        </div>
+                        <div class="topics-section">
+                            <h4>Topics & Discussion Items</h4>
+                            <button class="btn add-topic-btn" onclick="addTopic('${broker}')">Add New Topic</button>
+                            <div id="topics-${broker.replace(/[^a-zA-Z0-9]/g, '')}">
+                                ${generateTopics(broker)}
+                            </div>
+                        </div>
+                    </div>
                 `;
-                successList.innerHTML = `
-                    <li>34.3% completion rate (Complete + Broker Provided)</li>
-                    <li>Strong engagement with 72 different carriers</li>
-                    <li>1.2M+ eligible lives being managed successfully</li>
-                    <li>Consistent progress across major brokers</li>
-                    <li>Effective collaboration with partner organizations</li>
-                `;
-            } else {
-                const brokerNames = {
-                    mcgohan: 'McGohan Brabender',
-                    baldwin: 'The Baldwin Group - Southwest',
-                    mcgriff: 'McGriff Insurance - Blue Ridge',
-                    'marsh-va': 'Marsh McLennan - Virginia',
-                    cac: 'CAC Agency',
-                    'marsh-fl': 'Marsh McLennan - Florida'
-                };
-                
-                const brokerName = brokerNames[selectedBroker];
-                const data = brokerData[selectedBroker];
-                
-                priorityList.innerHTML = `
-                    <li>Focus on ${brokerName} performance optimization</li>
-                    <li>Review escalated tasks for this broker</li>
-                    <li>Implement targeted follow-up processes</li>
-                    <li>Assess carrier relationships and efficiency</li>
-                    <li>Monitor completion rate trends over time</li>
-                `;
-                successList.innerHTML = `
-                    <li>${data.metrics.completionRate} completion rate for ${brokerName}</li>
-                    <li>${data.metrics.totalTasks} total tasks being managed</li>
-                    <li>${data.metrics.eligibleLives} eligible lives covered</li>
-                    <li>Active engagement with carrier partners</li>
-                    <li>Consistent task processing and follow-through</li>
-                `;
-            }
+                brokerListContainer.appendChild(brokerSection);
+            });
         }
-        
-        // Broker filtering functionality
-        document.getElementById('brokerSelect').addEventListener('change', function() {
-            const selectedBroker = this.value;
-            console.log('Filtering by broker:', selectedBroker);
+
+        function getBrokerList() {
+            if (dashboardData.length > 0) {
+                return [...new Set(dashboardData.map(row => row["Broker Name (short text)"]).filter(Boolean))];
+            }
+            return [
+                'The Baldwin Group - Southwest',
+                'McGohan Brabender', 
+                'McGriff Insurance - Blue Ridge',
+                'Marsh McLennan - MN/WI',
+                'Marsh McLennan - Florida',
+                'Marsh McLennan - North Carolina',
+                'Marsh McLennan - South Carolina',
+                'Marsh McLennan - Virginia',
+                'CAC Agency',
+                'Marsh McLennan - DMV',
+                'Marsh McLennan - Georgia'
+            ];
+        }
+
+        function populateBrokerSelector(brokers) {
+            const selector = document.getElementById('broker-select');
+            selector.innerHTML = '<option value="">Select a Broker...</option>';
+            brokers.forEach(broker => {
+                const option = document.createElement('option');
+                option.value = broker;
+                option.textContent = broker;
+                selector.appendChild(option);
+            });
+        }
+
+        // Broker Detail Sheet Functions
+        function showBrokerDetail(brokerName) {
+            if (!brokerName) {
+                document.getElementById('broker-detail-content').innerHTML = '<p>Please select a broker to view detailed breakdown.</p>';
+                return;
+            }
+
+            const brokerData = dashboardData.filter(row => row["Broker Name (short text)"] === brokerName);
+            const detailHTML = generateBrokerDetailHTML(brokerName, brokerData);
+            document.getElementById('broker-detail-content').innerHTML = detailHTML;
             
-            // Update metrics
-            const data = brokerData[selectedBroker];
-            if (data) {
-                updateMetrics(data.metrics);
-                filterBrokers(data.brokers);
-                updateInsights(selectedBroker);
+            // Initialize charts for this broker
+            setTimeout(() => initBrokerDetailCharts(brokerName, brokerData), 100);
+        }
+
+        function generateBrokerDetailHTML(brokerName, brokerData) {
+            if (brokerData.length === 0) {
+                return '<p>No data available for this broker.</p>';
+            }
+
+            // Calculate statistics
+            const totalTasks = brokerData.length;
+            const completedTasks = brokerData.filter(row => 
+                row["Collection Status (drop down)"] === "Complete" || 
+                row["Collection Status (drop down)"] === "Broker Provided"
+            ).length;
+            const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            
+            // Get unique carriers
+            const carriers = [...new Set(brokerData.map(row => row["Carrier (short text)"]).filter(Boolean))];
+            
+            // Get unique clients (Parent Names)
+            const clients = [...new Set(brokerData.map(row => row["Parent Name"]).filter(Boolean))];
+            
+            // Calculate total eligible lives
+            const totalLives = brokerData.reduce((sum, row) => sum + (row["Eligible Lives (number)"] || 0), 0);
+
+            // Status breakdown
+            const statusCounts = {};
+            brokerData.forEach(row => {
+                const status = row["Collection Status (drop down)"] || "Unknown";
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            // Renewal date breakdown
+            const renewalCounts = {
+                "10/1": 0,
+                "11/1": 0,
+                "10/1-1/1": 0,
+                "other": 0,
+                "not-collected": 0
+            };
+
+            brokerData.forEach(row => {
+                const renewalStatus = row["Renewal Doc Status (drop down)"];
+                const renewalDate = row["Renewal date (date)"];
                 
-                // Update section title
-                const sectionTitle = document.querySelector('.section-title');
-                if (selectedBroker === 'all') {
-                    sectionTitle.textContent = 'Broker Performance Analysis';
-                } else {
-                    const brokerNames = {
-                        mcgohan: 'McGohan Brabender',
-                        baldwin: 'The Baldwin Group - Southwest',
-                        mcgriff: 'McGriff Insurance - Blue Ridge',
-                        'marsh-va': 'Marsh McLennan - Virginia',
-                        cac: 'CAC Agency',
-                        'marsh-fl': 'Marsh McLennan - Florida'
-                    };
-                    sectionTitle.textContent = `${brokerNames[selectedBroker]} - Detailed Analysis`;
+                if (renewalStatus === "Renewal Not Collected") {
+                    renewalCounts["not-collected"]++;
+                } else if (renewalDate && typeof renewalDate === 'string') {
+                    if (renewalDate.includes('October 1st')) {
+                        renewalCounts["10/1"]++;
+                    } else if (renewalDate.includes('November 1st')) {
+                        renewalCounts["11/1"]++;
+                    } else if (renewalDate.includes('October') || renewalDate.includes('November') || renewalDate.includes('December') || renewalDate.includes('January 1st')) {
+                        renewalCounts["10/1-1/1"]++;
+                    } else {
+                        renewalCounts["other"]++;
+                    }
+                }
+            });
+
+            return `
+                <div class="broker-detail-card">
+                    <div class="broker-detail-header">
+                        <h3>${brokerName}</h3>
+                        <div class="progress-indicator">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <span class="progress-text">${progressPercent}% Complete</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-grid">
+                        <div class="detail-stat">
+                            <h4>${totalTasks}</h4>
+                            <p>Total Tasks</p>
+                        </div>
+                        <div class="detail-stat">
+                            <h4>${completedTasks}</h4>
+                            <p>Completed Tasks</p>
+                        </div>
+                        <div class="detail-stat">
+                            <h4>${carriers.length}</h4>
+                            <p>Unique Carriers</p>
+                        </div>
+                        <div class="detail-stat">
+                            <h4>${clients.length}</h4>
+                            <p>Client Companies</p>
+                        </div>
+                        <div class="detail-stat">
+                            <h4>${totalLives.toLocaleString()}</h4>
+                            <p>Total Eligible Lives</p>
+                        </div>
+                        <div class="detail-stat">
+                            <h4>${renewalCounts["not-collected"]}</h4>
+                            <p>Renewals Not Collected</p>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="mini-chart">
+                            <h5>Collection Status Breakdown</h5>
+                            <canvas id="broker-status-chart-${brokerName.replace(/[^a-zA-Z0-9]/g, '')}" width="300" height="200"></canvas>
+                        </div>
+                        <div class="mini-chart">
+                            <h5>Renewal Date Distribution</h5>
+                            <canvas id="broker-renewal-chart-${brokerName.replace(/[^a-zA-Z0-9]/g, '')}" width="300" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <h4>Top Carriers by Task Count</h4>
+                        <div class="table-container">
+                            <table class="broker-table">
+                                <thead>
+                                    <tr>
+                                        <th>Carrier</th>
+                                        <th>Task Count</th>
+                                        <th>Completed</th>
+                                        <th>Completion Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${generateCarrierBreakdownRows(brokerData)}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="data-table">
+                        <h4>Recent Tasks & Status</h4>
+                        <div class="table-container">
+                            <table class="broker-table">
+                                <thead>
+                                    <tr>
+                                        <th>Client Company</th>
+                                        <th>Product/Task</th>
+                                        <th>Carrier</th>
+                                        <th>Collection Status</th>
+                                        <th>Eligible Lives</th>
+                                        <th>Renewal Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${generateTaskRows(brokerData.slice(0, 20))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateCarrierBreakdownRows(brokerData) {
+            const carrierStats = {};
+            
+            brokerData.forEach(row => {
+                const carrier = row["Carrier (short text)"];
+                const isComplete = row["Collection Status (drop down)"] === "Complete" || 
+                                 row["Collection Status (drop down)"] === "Broker Provided";
+                
+                if (!carrierStats[carrier]) {
+                    carrierStats[carrier] = { total: 0, completed: 0 };
                 }
                 
-                // Re-animate progress bars
-                setTimeout(() => {
-                    const progressBars = document.querySelectorAll('.progress-fill');
-                    progressBars.forEach(bar => {
-                        const width = bar.style.width;
-                        bar.style.width = '0%';
-                        setTimeout(() => {
-                            bar.style.width = width;
-                        }, 100);
-                    });
-                }, 100);
-            }
-        });
-        
-        // Animate progress bars on load
-        window.addEventListener('load', function() {
-            const progressBars = document.querySelectorAll('.progress-fill');
-            progressBars.forEach(bar => {
-                const width = bar.style.width;
-                bar.style.width = '0%';
-                setTimeout(() => {
-                    bar.style.width = width;
-                }, 500);
+                carrierStats[carrier].total++;
+                if (isComplete) carrierStats[carrier].completed++;
             });
+
+            return Object.entries(carrierStats)
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 10)
+                .map(([carrier, stats]) => {
+                    const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                    return `
+                        <tr>
+                            <td>${carrier}</td>
+                            <td>${stats.total}</td>
+                            <td>${stats.completed}</td>
+                            <td>${completionRate}%</td>
+                        </tr>
+                    `;
+                }).join('');
+        }
+
+        function generateTaskRows(tasks) {
+            return tasks.map(task => {
+                const status = task["Collection Status (drop down)"] || "Unknown";
+                const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+                const lives = task["Eligible Lives (number)"] || 0;
+                const renewalDate = task["Renewal date (date)"] ? 
+                    new Date(task["Renewal date (date)"]).toLocaleDateString() : 
+                    'N/A';
+                
+                return `
+                    <tr>
+                        <td>${task["Parent Name"] || 'N/A'}</td>
+                        <td>${task["Task Name"] || 'N/A'}</td>
+                        <td>${task["Carrier (short text)"] || 'N/A'}</td>
+                        <td><span class="status-badge status-${statusClass}">${status}</span></td>
+                        <td>${lives.toLocaleString()}</td>
+                        <td>${renewalDate}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function initBrokerDetailCharts(brokerName, brokerData) {
+            const brokerId = brokerName.replace(/[^a-zA-Z0-9]/g, '');
+            
+            // Status Chart
+            const statusCounts = {};
+            brokerData.forEach(row => {
+                const status = row["Collection Status (drop down)"] || "Unknown";
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+
+            const statusCtx = document.getElementById(`broker-status-chart-${brokerId}`);
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCounts),
+                        datasets: [{
+                            data: Object.values(statusCounts),
+                            backgroundColor: chartColors.slice(0, Object.keys(statusCounts).length)
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    fontSize: 10
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Renewal Chart
+            const renewalCounts = {
+                "10/1": 0,
+                "11/1": 0,
+                "10/1-1/1": 0,
+                "Not Collected": 0,
+                "Other": 0
+            };
+
+            brokerData.forEach(row => {
+                const renewalStatus = row["Renewal Doc Status (drop down)"];
+                const renewalDate = row["Renewal date (date)"];
+                
+                if (renewalStatus === "Renewal Not Collected") {
+                    renewalCounts["Not Collected"]++;
+                } else if (renewalDate && typeof renewalDate === 'string') {
+                    if (renewalDate.includes('October 1st')) {
+                        renewalCounts["10/1"]++;
+                    } else if (renewalDate.includes('November 1st')) {
+                        renewalCounts["11/1"]++;
+                    } else if (renewalDate.includes('October') || renewalDate.includes('November') || renewalDate.includes('December') || renewalDate.includes('January 1st')) {
+                        renewalCounts["10/1-1/1"]++;
+                    } else {
+                        renewalCounts["Other"]++;
+                    }
+                }
+            });
+
+            const renewalCtx = document.getElementById(`broker-renewal-chart-${brokerId}`);
+            if (renewalCtx) {
+                new Chart(renewalCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(renewalCounts),
+                        datasets: [{
+                            data: Object.values(renewalCounts),
+                            backgroundColor: chartColors[1]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function generateChecklistItems(broker, type) {
+            const externalTasks = [
+                'LOA signed and uploaded',
+                'Carrier contacts added',
+                'Policy Numbers provided', 
+                'Principal delegate added',
+                'Hartford LOA signed',
+                'Ask brokers to send email to carriers',
+                'RFI Method confirmed'
+            ];
+
+            const internalTasks = [
+                'Client list scope determined',
+                'Lives/ProductsClient list imported',
+                'Clickup list and dashboard created',
+                'Intercom Macro created',
+                'Send groups (policy numbers) to Guardian to be tagged',
+                'Determine top carriers - add new to target carrier tracking'
+            ];
+
+            const tasks = type === 'external' ? externalTasks : internalTasks;
+            
+            return tasks.map(task => {
+                const taskId = `${broker}-${type}-${task}`.replace(/[^a-zA-Z0-9]/g, '');
+                const saved = brokerNotes[taskId] || { status: 'needs-attention', notes: '' };
+                
+                return `
+                    <div class="checklist-item">
+                        <div style="flex: 1;">
+                            <strong>${task}</strong>
+                            <select class="status-select status-${saved.status}" onchange="updateTaskStatus('${taskId}', this.value)">
+                                <option value="blocked" ${saved.status === 'blocked' ? 'selected' : ''}>Blocked</option>
+                                <option value="paused" ${saved.status === 'paused' ? 'selected' : ''}>Paused</option>
+                                <option value="done" ${saved.status === 'done' ? 'selected' : ''}>Done</option>
+                                <option value="needs-attention" ${saved.status === 'needs-attention' ? 'selected' : ''}>Needs Attention</option>
+                            </select>
+                            <textarea class="notes-input" placeholder="Notes..." onchange="updateTaskNotes('${taskId}', this.value)">${saved.notes}</textarea>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generateTopics(broker) {
+            const brokerId = broker.replace(/[^a-zA-Z0-9]/g, '');
+            const topics = brokerTopics[broker] || [];
+            
+            return topics.map((topic, index) => `
+                <div class="topic-item">
+                    <select class="topic-type-select" onchange="updateTopicType('${broker}', ${index}, this.value)">
+                        <option value="awareness" ${topic.type === 'awareness' ? 'selected' : ''}>Awareness</option>
+                        <option value="discussion" ${topic.type === 'discussion' ? 'selected' : ''}>Discussion</option>
+                        <option value="decision" ${topic.type === 'decision' ? 'selected' : ''}>Decision</option>
+                    </select>
+                    <input type="text" value="${topic.description}" onchange="updateTopicDescription('${broker}', ${index}, this.value)" placeholder="Topic description...">
+                    <input type="text" value="${topic.assignee}" onchange="updateTopicAssignee('${broker}', ${index}, this.value)" placeholder="Assignee...">
+                    <select class="status-select status-${topic.status}" onchange="updateTopicStatus('${broker}', ${index}, this.value)">
+                        <option value="blocked" ${topic.status === 'blocked' ? 'selected' : ''}>Blocked</option>
+                        <option value="paused" ${topic.status === 'paused' ? 'selected' : ''}>Paused</option>
+                        <option value="done" ${topic.status === 'done' ? 'selected' : ''}>Done</option>
+                        <option value="needs-attention" ${topic.status === 'needs-attention' ? 'selected' : ''}>Needs Attention</option>
+                    </select>
+                    <button class="btn" style="background: #ff6b6b;" onclick="removeTopic('${broker}', ${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        // Broker interaction functions
+        function toggleBroker(broker) {
+            const content = document.getElementById(`broker-${broker.replace(/[^a-zA-Z0-9]/g, '')}`);
+            content.classList.toggle('active');
+        }
+
+        function updateTaskStatus(taskId, status) {
+            if (!brokerNotes[taskId]) brokerNotes[taskId] = { status: 'needs-attention', notes: '' };
+            brokerNotes[taskId].status = status;
+            localStorage.setItem('threeflow-broker-notes', JSON.stringify(brokerNotes));
+            
+            // Update visual styling
+            const select = document.querySelector(`select[onchange*="${taskId}"]`);
+            if (select) {
+                select.className = `status-select status-${status}`;
+            }
+        }
+
+        function updateTaskNotes(taskId, notes) {
+            if (!brokerNotes[taskId]) brokerNotes[taskId] = { status: 'needs-attention', notes: '' };
+            brokerNotes[taskId].notes = notes;
+            localStorage.setItem('threeflow-broker-notes', JSON.stringify(brokerNotes));
+        }
+
+        function addTopic(broker) {
+            if (!brokerTopics[broker]) brokerTopics[broker] = [];
+            brokerTopics[broker].push({
+                type: 'awareness',
+                description: '',
+                assignee: '',
+                status: 'needs-attention',
+                date: new Date().toISOString().split('T')[0]
+            });
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+            
+            // Refresh topics display
+            const topicsContainer = document.getElementById(`topics-${broker.replace(/[^a-zA-Z0-9]/g, '')}`);
+            topicsContainer.innerHTML = generateTopics(broker);
+        }
+
+        function updateTopicType(broker, index, type) {
+            brokerTopics[broker][index].type = type;
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+        }
+
+        function updateTopicDescription(broker, index, description) {
+            brokerTopics[broker][index].description = description;
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+        }
+
+        function updateTopicAssignee(broker, index, assignee) {
+            brokerTopics[broker][index].assignee = assignee;
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+        }
+
+        function updateTopicStatus(broker, index, status) {
+            brokerTopics[broker][index].status = status;
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+            
+            // Update visual styling - find the select element that was changed
+            const topicsContainer = document.getElementById(`topics-${broker.replace(/[^a-zA-Z0-9]/g, '')}`);
+            const selects = topicsContainer.querySelectorAll('.status-select');
+            if (selects[index]) {
+                selects[index].className = `status-select status-${status}`;
+            }
+        }
+
+        function removeTopic(broker, index) {
+            brokerTopics[broker].splice(index, 1);
+            localStorage.setItem('threeflow-broker-topics', JSON.stringify(brokerTopics));
+            
+            // Refresh topics display
+            const topicsContainer = document.getElementById(`topics-${broker.replace(/[^a-zA-Z0-9]/g, '')}`);
+            topicsContainer.innerHTML = generateTopics(broker);
+        }
+
+        // CSV Upload functionality
+        function uploadCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a CSV file first.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const results = Papa.parse(csv, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true
+                });
+                
+                dashboardData = results.data;
+                updateDashboardStats();
+                alert('Dashboard updated successfully! Your notes and topics have been preserved.');
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function updateDashboardStats() {
+            // Update overview stats
+            const totalTasks = dashboardData.length;
+            const brokers = [...new Set(dashboardData.map(row => row["Broker Name (short text)"]).filter(Boolean))];
+            const carriers = [...new Set(dashboardData.map(row => row["Carrier (short text)"]).filter(Boolean))];
+            const completed = dashboardData.filter(row => 
+                row["Collection Status (drop down)"] === "Complete" || 
+                row["Collection Status (drop down)"] === "Broker Provided"
+            ).length;
+            
+            document.getElementById('total-tasks').textContent = totalTasks.toLocaleString();
+            document.getElementById('total-brokers').textContent = brokers.length;
+            document.getElementById('total-carriers').textContent = carriers.length;
+            document.getElementById('completion-rate').textContent = Math.round((completed / totalTasks) * 100) + '%';
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            generateBrokerSections();
         });
-        
-        console.log('ThreeFlow Dashboard loaded successfully!');
     </script>
 </body>
 </html>
