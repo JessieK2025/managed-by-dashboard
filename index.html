@@ -661,9 +661,22 @@
             }
         ];
 
-        // If no real data is loaded, use sample data
+        // If no real data is loaded, use sample data with all 11 brokers
         if (dashboardData.length === 0) {
-            dashboardData = sampleData;
+            dashboardData = [
+                // Sample data for all 11 brokers
+                { "Broker Name (short text)": "The Baldwin Group - Southwest", "Carrier (short text)": "Guardian", "Collection Status (drop down)": "Complete", "Renewal date (date)": "Sunday, November 1st 2026", "Parent Name": "Sample Client A", "Task Name": "Sample Task 1", "Eligible Lives (number)": 25 },
+                { "Broker Name (short text)": "McGohan Brabender", "Carrier (short text)": "Principal", "Collection Status (drop down)": "Pending", "Renewal date (date)": "Saturday, January 1st 2028", "Parent Name": "Sample Client B", "Task Name": "Sample Task 2", "Eligible Lives (number)": 30 },
+                { "Broker Name (short text)": "McGriff Insurance - Blue Ridge", "Carrier (short text)": "UnitedHealthcare", "Collection Status (drop down)": "Not started", "Renewal date (date)": "Tuesday, October 1st 2026", "Parent Name": "Sample Client C", "Task Name": "Sample Task 3", "Eligible Lives (number)": 40 },
+                { "Broker Name (short text)": "Marsh McLennan - Virginia", "Carrier (short text)": "Mutual Of Omaha", "Collection Status (drop down)": "Escalated", "Renewal date (date)": "Friday, December 1st 2026", "Parent Name": "Sample Client D", "Task Name": "Sample Task 4", "Eligible Lives (number)": 15 },
+                { "Broker Name (short text)": "CAC Agency", "Carrier (short text)": "Hartford", "Collection Status (drop down)": "Broker Provided", "Renewal date (date)": "Monday, November 1st 2026", "Parent Name": "Sample Client E", "Task Name": "Sample Task 5", "Eligible Lives (number)": 50 },
+                { "Broker Name (short text)": "Marsh McLennan - Florida", "Carrier (short text)": "MetLife", "Collection Status (drop down)": "Complete", "Renewal date (date)": "Wednesday, October 1st 2026", "Parent Name": "Sample Client F", "Task Name": "Sample Task 6", "Eligible Lives (number)": 35 },
+                { "Broker Name (short text)": "Marsh McLennan - MN/WI", "Carrier (short text)": "Lincoln", "Collection Status (drop down)": "Pending", "Renewal date (date)": "Sunday, January 1st 2027", "Parent Name": "Sample Client G", "Task Name": "Sample Task 7", "Eligible Lives (number)": 22 },
+                { "Broker Name (short text)": "Marsh McLennan - South Carolina", "Carrier (short text)": "Unum", "Collection Status (drop down)": "Not started", "Renewal date (date)": "Thursday, November 1st 2026", "Parent Name": "Sample Client H", "Task Name": "Sample Task 8", "Eligible Lives (number)": 28 },
+                { "Broker Name (short text)": "Marsh McLennan - North Carolina", "Carrier (short text)": "Sun Life", "Collection Status (drop down)": "Complete", "Renewal date (date)": "Saturday, October 1st 2026", "Parent Name": "Sample Client I", "Task Name": "Sample Task 9", "Eligible Lives (number)": 45 },
+                { "Broker Name (short text)": "Marsh McLennan - Georgia", "Carrier (short text)": "Standard", "Collection Status (drop down)": "Escalated", "Renewal date (date)": "Tuesday, December 1st 2026", "Parent Name": "Sample Client J", "Task Name": "Sample Task 10", "Eligible Lives (number)": 33 },
+                { "Broker Name (short text)": "Marsh McLennan - DMV", "Carrier (short text)": "Voya", "Collection Status (drop down)": "Pending", "Renewal date (date)": "Friday, November 1st 2026", "Parent Name": "Sample Client K", "Task Name": "Sample Task 11", "Eligible Lives (number)": 18 }
+            ];
         }
 
         // Navigation
@@ -1357,6 +1370,9 @@
             document.getElementById('total-brokers').textContent = brokers.length;
             document.getElementById('total-carriers').textContent = carriers.length;
             document.getElementById('completion-rate').textContent = Math.round((completed / totalTasks) * 100) + '%';
+            
+            // Refresh broker selector
+            populateBrokerSelector(brokers);
         }
 
         // Initialize dashboard
