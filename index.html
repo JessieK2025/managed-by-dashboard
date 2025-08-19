@@ -283,7 +283,99 @@
             transition: width 0.5s ease;
         }
         
-        /* Insights Section */
+        /* Repeatable Carriers Alert Section */
+        .repeatable-carriers-section {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 2px solid #f87171;
+            border-radius: 16px;
+            padding: 32px;
+            margin: 40px 0;
+        }
+        
+        .repeatable-carriers-title {
+            color: #991b1b;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .carrier-alert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .carrier-alert-item {
+            background: rgba(255,255,255,0.8);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #ef4444;
+            transition: transform 0.2s ease;
+        }
+        
+        .carrier-alert-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+        }
+        
+        .carrier-alert-item.escalated {
+            border-left-color: #dc2626;
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+        }
+        
+        .carrier-alert-item.not-started {
+            border-left-color: #f59e0b;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        
+        .carrier-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .carrier-issues {
+            font-size: 0.95rem;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+        
+        .carrier-details {
+            display: flex;
+            gap: 16px;
+            font-size: 0.875rem;
+        }
+        
+        .issue-count {
+            background: rgba(255,255,255,0.8);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+        
+        .issue-count.escalated {
+            color: #dc2626;
+            border: 1px solid #f87171;
+        }
+        
+        .issue-count.not-started {
+            color: #d97706;
+            border: 1px solid #fbbf24;
+        }
+        
+        .no-issues {
+            text-align: center;
+            color: #059669;
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 40px;
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-radius: 12px;
+            border: 2px solid #10b981;
+        }
         .insights-section {
             background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
             border: 2px solid #f59e0b;
@@ -526,20 +618,20 @@
                             <label for="all-renewals">All Renewal Dates</label>
                         </div>
                         <div class="renewal-option">
-                            <input type="checkbox" id="oct-1" value="october-1" onchange="handleRenewalChange()">
-                            <label for="oct-1">October 1</label>
+                            <input type="checkbox" id="oct-1-25" value="october-1-2025" onchange="handleRenewalChange()">
+                            <label for="oct-1-25">October 1, 2025</label>
                         </div>
                         <div class="renewal-option">
-                            <input type="checkbox" id="nov-1" value="november-1" onchange="handleRenewalChange()">
-                            <label for="nov-1">November 1</label>
+                            <input type="checkbox" id="nov-1-25" value="november-1-2025" onchange="handleRenewalChange()">
+                            <label for="nov-1-25">November 1, 2025</label>
                         </div>
                         <div class="renewal-option">
-                            <input type="checkbox" id="dec-1" value="december-1" onchange="handleRenewalChange()">
-                            <label for="dec-1">December 1</label>
+                            <input type="checkbox" id="dec-1-25" value="december-1-2025" onchange="handleRenewalChange()">
+                            <label for="dec-1-25">December 1, 2025</label>
                         </div>
                         <div class="renewal-option">
-                            <input type="checkbox" id="jan-1" value="january-1" onchange="handleRenewalChange()">
-                            <label for="jan-1">January 1</label>
+                            <input type="checkbox" id="jan-1-26" value="january-1-2026" onchange="handleRenewalChange()">
+                            <label for="jan-1-26">January 1, 2026</label>
                         </div>
                     </div>
                 </div>
@@ -600,6 +692,16 @@
                     </div>
                     <div class="metric-icon purple">🏥</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Repeatable Carriers Alert -->
+        <div class="repeatable-carriers-section">
+            <div class="repeatable-carriers-title">
+                🚨 Repeatable Carriers Alert
+            </div>
+            <div id="carrierAlertContainer">
+                <!-- Carrier alerts will be populated here -->
             </div>
         </div>
 
@@ -701,10 +803,10 @@
             } else {
                 const dateNames = selectedRenewalDates.map(date => {
                     switch(date) {
-                        case 'october-1': return 'Oct 1';
-                        case 'november-1': return 'Nov 1';
-                        case 'december-1': return 'Dec 1';
-                        case 'january-1': return 'Jan 1';
+                        case 'october-1-2025': return 'Oct 1, 2025';
+                        case 'november-1-2025': return 'Nov 1, 2025';
+                        case 'december-1-2025': return 'Dec 1, 2025';
+                        case 'january-1-2026': return 'Jan 1, 2026';
                         default: return date;
                     }
                 });
@@ -863,9 +965,9 @@
         function updateUI() {
             updateMetrics();
             updateBrokerDropdown();
-            updateRenewalTimeline();
             updateBrokerSection();
             updateInsights();
+            updateRepeatableCarriersAlert();
         }
         
         function updateMetrics() {
@@ -962,6 +1064,96 @@
                     `;
                     container.appendChild(brokerDiv);
                 });
+        }
+        
+        function updateRepeatableCarriersAlert() {
+            const container = document.getElementById('carrierAlertContainer');
+            const repeatableCarriers = ['Principal', 'Unum', 'MetLife', 'Lincoln', 'Hartford', 'Guardian', 'Moo', 'Equitable', 'One America'];
+            
+            // Find issues with repeatable carriers
+            const carrierIssues = {};
+            
+            // Initialize tracking for all repeatable carriers
+            repeatableCarriers.forEach(carrier => {
+                carrierIssues[carrier] = {
+                    notStarted: 0,
+                    escalated: 0,
+                    total: 0,
+                    tasks: []
+                };
+            });
+            
+            // Analyze current data
+            if (csvData && csvData.length > 0) {
+                csvData.forEach(row => {
+                    const carrier = row['Carrier (short text)'] || '';
+                    const collectionStatus = row['Collection Status (drop down)'] || '';
+                    
+                    // Check if this is a repeatable carrier (case insensitive partial match)
+                    const matchedCarrier = repeatableCarriers.find(repCarrier => 
+                        carrier.toLowerCase().includes(repCarrier.toLowerCase()) ||
+                        repCarrier.toLowerCase().includes(carrier.toLowerCase())
+                    );
+                    
+                    if (matchedCarrier) {
+                        carrierIssues[matchedCarrier].total++;
+                        carrierIssues[matchedCarrier].tasks.push(row);
+                        
+                        if (collectionStatus === 'Not started') {
+                            carrierIssues[matchedCarrier].notStarted++;
+                        } else if (collectionStatus === 'Escalated') {
+                            carrierIssues[matchedCarrier].escalated++;
+                        }
+                    }
+                });
+            }
+            
+            // Check if any carriers have issues
+            const carriersWithIssues = Object.entries(carrierIssues).filter(([carrier, data]) => 
+                data.notStarted > 0 || data.escalated > 0
+            );
+            
+            if (carriersWithIssues.length === 0) {
+                container.innerHTML = `
+                    <div class="no-issues">
+                        ✅ All Repeatable Carriers Clear!<br>
+                        <span style="font-size: 0.9rem; font-weight: normal;">No "Not Started" or "Escalated" tasks found for Principal, Unum, MetLife, Lincoln, Hartford, Guardian, Moo, Equitable, or One America</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create alert grid
+            container.innerHTML = '<div class="carrier-alert-grid" id="carrierAlertGrid"></div>';
+            const alertGrid = document.getElementById('carrierAlertGrid');
+            
+            carriersWithIssues.forEach(([carrier, data]) => {
+                const hasEscalated = data.escalated > 0;
+                const hasNotStarted = data.notStarted > 0;
+                const alertClass = hasEscalated ? 'escalated' : 'not-started';
+                
+                let issueText = '';
+                if (hasEscalated && hasNotStarted) {
+                    issueText = `${data.escalated} escalated, ${data.notStarted} not started tasks`;
+                } else if (hasEscalated) {
+                    issueText = `${data.escalated} escalated tasks need attention`;
+                } else {
+                    issueText = `${data.notStarted} tasks haven't been started`;
+                }
+                
+                const alertItem = document.createElement('div');
+                alertItem.className = `carrier-alert-item ${alertClass}`;
+                alertItem.innerHTML = `
+                    <div class="carrier-name">${carrier}</div>
+                    <div class="carrier-issues">${issueText}</div>
+                    <div class="carrier-details">
+                        ${hasEscalated ? `<span class="issue-count escalated">${data.escalated} Escalated</span>` : ''}
+                        ${hasNotStarted ? `<span class="issue-count not-started">${data.notStarted} Not Started</span>` : ''}
+                        <span style="color: #6b7280; font-size: 0.8rem;">Total: ${data.total} tasks</span>
+                    </div>
+                `;
+                alertGrid.appendChild(alertItem);
+            });
         }
         
         function updateInsights() {
@@ -1068,14 +1260,14 @@
                     const renewalDate = row['Renewal date (date)'] || '';
                     return selectedRenewalDates.some(selectedDate => {
                         switch(selectedDate) {
-                            case 'october-1':
-                                return renewalDate.toLowerCase().includes('october') && renewalDate.includes('1');
-                            case 'november-1':
-                                return renewalDate.toLowerCase().includes('november') && renewalDate.includes('1');
-                            case 'december-1':
-                                return renewalDate.toLowerCase().includes('december') && renewalDate.includes('1');
-                            case 'january-1':
-                                return renewalDate.toLowerCase().includes('january') && renewalDate.includes('1');
+                            case 'october-1-2025':
+                                return renewalDate.toLowerCase().includes('october') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'november-1-2025':
+                                return renewalDate.toLowerCase().includes('november') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'december-1-2025':
+                                return renewalDate.toLowerCase().includes('december') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'january-1-2026':
+                                return renewalDate.toLowerCase().includes('january') && renewalDate.includes('1') && renewalDate.includes('2026');
                             default:
                                 return false;
                         }
@@ -1089,9 +1281,9 @@
             
             // Update UI
             updateMetrics();
-            updateRenewalTimeline();
             updateBrokerSection();
             updateInsights();
+            updateRepeatableCarriersAlert();
             
             // Update section title
             const sectionTitle = document.getElementById('brokerSectionTitle');
@@ -1109,10 +1301,10 @@
             if (!selectedRenewalDates.includes('all')) {
                 const renewalText = selectedRenewalDates.map(date => {
                     switch(date) {
-                        case 'october-1': return 'Oct 1';
-                        case 'november-1': return 'Nov 1';
-                        case 'december-1': return 'Dec 1';
-                        case 'january-1': return 'Jan 1';
+                        case 'october-1-2025': return 'Oct 1, 2025';
+                        case 'november-1-2025': return 'Nov 1, 2025';
+                        case 'december-1-2025': return 'Dec 1, 2025';
+                        case 'january-1-2026': return 'Jan 1, 2026';
                         default: return date;
                     }
                 }).join(', ');
@@ -1128,24 +1320,34 @@
         function initializeSampleData() {
             const sampleData = [];
             const brokers = ["McGohan Brabender", "The Baldwin Group - Southwest", "McGriff Insurance - Blue Ridge", "Marsh McLennan - Virginia", "CAC Agency", "Marsh McLennan - Florida"];
-            const carriers = ["Standard", "Blue Cross Blue Shield", "Equitable", "Guardian", "Mutual Of Omaha", "Delta Dental"];
+            const carriers = ["Standard", "Blue Cross Blue Shield", "Equitable", "Guardian", "Mutual Of Omaha", "Delta Dental", "Principal", "Unum", "MetLife", "Lincoln Financial", "The Hartford", "Moo", "One America"];
             const statuses = ["Not started", "Pending", "Escalated", "Complete", "Broker Provided"];
             const renewalDates = [
-                "Saturday, October 1st 2024",
-                "Friday, November 1st 2024", 
-                "Sunday, December 1st 2024",
-                "Wednesday, January 1st 2025",
                 "Tuesday, October 1st 2025",
-                "Saturday, November 1st 2025"
+                "Saturday, November 1st 2025", 
+                "Monday, December 1st 2025",
+                "Wednesday, January 1st 2026"
             ];
             
             for (let i = 0; i < 1000; i++) {
+                // Increase chance of issues for repeatable carriers to demonstrate the feature
+                const carrier = carriers[Math.floor(Math.random() * carriers.length)];
+                const isRepeatableCarrier = ['Principal', 'Unum', 'MetLife', 'Lincoln Financial', 'The Hartford', 'Guardian', 'Moo', 'Equitable', 'One America'].includes(carrier);
+                
+                let status;
+                if (isRepeatableCarrier && Math.random() < 0.3) {
+                    // 30% chance of issues for repeatable carriers (for demo purposes)
+                    status = Math.random() < 0.5 ? 'Escalated' : 'Not started';
+                } else {
+                    status = statuses[Math.floor(Math.random() * statuses.length)];
+                }
+                
                 sampleData.push({
                     "Task ID": `task_${i}`,
                     "Task Name": `Sample Task ${i}`,
                     "Broker (drop down)": brokers[Math.floor(Math.random() * brokers.length)],
-                    "Carrier (short text)": carriers[Math.floor(Math.random() * carriers.length)],
-                    "Collection Status (drop down)": statuses[Math.floor(Math.random() * statuses.length)],
+                    "Carrier (short text)": carrier,
+                    "Collection Status (drop down)": status,
                     "Renewal Doc Status (drop down)": Math.random() > 0.7 ? "Renewal Collected" : "Renewal Not Collected",
                     "Renewal date (date)": renewalDates[Math.floor(Math.random() * renewalDates.length)],
                     "Eligible Lives (number)": Math.floor(Math.random() * 500) + 10
