@@ -583,25 +583,25 @@
                         <span>▼</span>
                     </div>
                     <div class="renewal-dropdown" id="renewalDropdown">
-                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'all-renewals')">
-                            <input type="checkbox" id="all-renewals" value="all" checked>
-                            <span class="renewal-option-label">All Renewal Dates</span>
+                        <div class="renewal-option">
+                            <input type="checkbox" id="all-renewals" value="all" checked onchange="toggleRenewalOption(event, 'all-renewals')">
+                            <span class="renewal-option-label" onclick="toggleRenewalOption(event, 'all-renewals')">All Renewal Dates</span>
                         </div>
-                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'oct-1-25')">
-                            <input type="checkbox" id="oct-1-25" value="october-1-2025">
-                            <span class="renewal-option-label">October 1, 2025</span>
+                        <div class="renewal-option">
+                            <input type="checkbox" id="oct-1-25" value="october-1-2025" onchange="toggleRenewalOption(event, 'oct-1-25')">
+                            <span class="renewal-option-label" onclick="toggleRenewalOption(event, 'oct-1-25')">October 1, 2025</span>
                         </div>
-                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'nov-1-25')">
-                            <input type="checkbox" id="nov-1-25" value="november-1-2025">
-                            <span class="renewal-option-label">November 1, 2025</span>
+                        <div class="renewal-option">
+                            <input type="checkbox" id="nov-1-25" value="november-1-2025" onchange="toggleRenewalOption(event, 'nov-1-25')">
+                            <span class="renewal-option-label" onclick="toggleRenewalOption(event, 'nov-1-25')">November 1, 2025</span>
                         </div>
-                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'dec-1-25')">
-                            <input type="checkbox" id="dec-1-25" value="december-1-2025">
-                            <span class="renewal-option-label">December 1, 2025</span>
+                        <div class="renewal-option">
+                            <input type="checkbox" id="dec-1-25" value="december-1-2025" onchange="toggleRenewalOption(event, 'dec-1-25')">
+                            <span class="renewal-option-label" onclick="toggleRenewalOption(event, 'dec-1-25')">December 1, 2025</span>
                         </div>
-                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'jan-1-26')">
-                            <input type="checkbox" id="jan-1-26" value="january-1-2026">
-                            <span class="renewal-option-label">January 1, 2026</span>
+                        <div class="renewal-option">
+                            <input type="checkbox" id="jan-1-26" value="january-1-2026" onchange="toggleRenewalOption(event, 'jan-1-26')">
+                            <span class="renewal-option-label" onclick="toggleRenewalOption(event, 'jan-1-26')">January 1, 2026</span>
                         </div>
                     </div>
                 </div>
@@ -727,41 +727,60 @@
         
         // Renewal multi-select functions
         function toggleRenewalDropdown(event) {
-            event.stopPropagation();
+            if (event) event.stopPropagation();
             const dropdown = document.getElementById('renewalDropdown');
             dropdown.classList.toggle('show');
         }
         
         function toggleRenewalOption(event, checkboxId) {
-            event.stopPropagation();
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
             const checkbox = document.getElementById(checkboxId);
-            checkbox.checked = !checkbox.checked;
-            handleRenewalChange();
-        }
-        
-        function handleRenewalChange() {
             const allCheckbox = document.getElementById('all-renewals');
             const otherCheckboxes = document.querySelectorAll('#renewalDropdown input[type="checkbox"]:not(#all-renewals)');
             
-            // If "All" was just checked, uncheck others
-            if (allCheckbox.checked) {
-                otherCheckboxes.forEach(cb => cb.checked = false);
-                selectedRenewalDates = ['all'];
-            } else {
-                // Get selected specific dates
-                selectedRenewalDates = Array.from(otherCheckboxes)
-                    .filter(cb => cb.checked)
-                    .map(cb => cb.value);
-                
-                // If no specific dates selected, check "All"
-                if (selectedRenewalDates.length === 0) {
-                    allCheckbox.checked = true;
+            // Toggle the clicked checkbox
+            checkbox.checked = !checkbox.checked;
+            
+            // Handle logic
+            if (checkboxId === 'all-renewals') {
+                // If "All" was clicked and is now checked, uncheck all others
+                if (checkbox.checked) {
+                    otherCheckboxes.forEach(cb => cb.checked = false);
                     selectedRenewalDates = ['all'];
+                } else {
+                    // If "All" was unchecked, we need at least one selection
+                    checkbox.checked = true;
+                    selectedRenewalDates = ['all'];
+                }
+            } else {
+                // If a specific date was clicked
+                if (checkbox.checked) {
+                    // Uncheck "All" when any specific date is selected
+                    allCheckbox.checked = false;
+                    selectedRenewalDates = Array.from(otherCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
+                } else {
+                    // If unchecking and no other dates selected, check "All"
+                    selectedRenewalDates = Array.from(otherCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
+                    
+                    if (selectedRenewalDates.length === 0) {
+                        allCheckbox.checked = true;
+                        selectedRenewalDates = ['all'];
+                    }
                 }
             }
             
             updateRenewalButtonText();
             applyFilters();
+            
+            return false; // Prevent any further event propagation
         }
         
         function updateRenewalButtonText() {
@@ -986,7 +1005,7 @@
             const container = document.getElementById('carrierAlertContainer');
             const repeatableCarriers = ['Principal', 'Unum', 'MetLife', 'Lincoln', 'Hartford', 'Guardian', 'Moo', 'Equitable', 'One America'];
             
-            // Find issues with repeatable carriers
+            // Find issues with repeatable carriers - USE FILTERED DATA
             const carrierIssues = {};
             
             // Initialize tracking for all repeatable carriers
@@ -999,9 +1018,39 @@
                 };
             });
             
-            // Analyze current data
-            if (csvData && csvData.length > 0) {
-                csvData.forEach(row => {
+            // Get the currently filtered data
+            const selectedBroker = document.getElementById('brokerSelect').value;
+            let dataToAnalyze = csvData;
+            
+            // Apply broker filter to the data we're analyzing
+            if (selectedBroker !== 'all') {
+                dataToAnalyze = csvData.filter(row => row['Broker (drop down)'] === selectedBroker);
+            }
+            
+            // Apply renewal date filter to the data we're analyzing
+            if (!selectedRenewalDates.includes('all')) {
+                dataToAnalyze = dataToAnalyze.filter(row => {
+                    const renewalDate = row['Renewal date (date)'] || '';
+                    return selectedRenewalDates.some(selectedDate => {
+                        switch(selectedDate) {
+                            case 'october-1-2025':
+                                return renewalDate.toLowerCase().includes('october') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'november-1-2025':
+                                return renewalDate.toLowerCase().includes('november') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'december-1-2025':
+                                return renewalDate.toLowerCase().includes('december') && renewalDate.includes('1') && renewalDate.includes('2025');
+                            case 'january-1-2026':
+                                return renewalDate.toLowerCase().includes('january') && renewalDate.includes('1') && renewalDate.includes('2026');
+                            default:
+                                return false;
+                        }
+                    });
+                });
+            }
+            
+            // Analyze the filtered data
+            if (dataToAnalyze && dataToAnalyze.length > 0) {
+                dataToAnalyze.forEach(row => {
                     const carrier = row['Carrier (short text)'] || '';
                     const collectionStatus = row['Collection Status (drop down)'] || '';
                     
@@ -1033,7 +1082,7 @@
                 container.innerHTML = `
                     <div class="no-issues">
                         ✅ All Repeatable Carriers Clear!<br>
-                        <span style="font-size: 0.9rem; font-weight: normal;">No "Not Started" or "Escalated" tasks found for Principal, Unum, MetLife, Lincoln, Hartford, Guardian, Moo, Equitable, or One America</span>
+                        <span style="font-size: 0.9rem; font-weight: normal;">No "Not Started" or "Escalated" tasks found for Principal, Unum, MetLife, Lincoln, Hartford, Guardian, Moo, Equitable, or One America in the current filter</span>
                     </div>
                 `;
                 return;
