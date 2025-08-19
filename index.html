@@ -1,475 +1,736 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { Calendar, Users, FileText, TrendingUp, AlertCircle, CheckCircle, Clock, Filter, ChevronDown, ChevronRight } from 'lucide-react';
-
-const ThreeFlowDashboard = () => {
-  const [selectedBroker, setSelectedBroker] = useState('All Brokers');
-  const [selectedView, setSelectedView] = useState('overview');
-  const [expandedBrokers, setExpandedBrokers] = useState(new Set());
-  
-  // ThreeFlow brand colors
-  const colors = {
-    primary: '#00B980',
-    secondary: '#000099', 
-    success: '#1A7848',
-    warning: '#D7CC43',
-    purple: '#8A288E',
-    light: '#85DABA',
-    accent1: '#53B684',
-    accent2: '#7A7FF5',
-    accent3: '#B263C8',
-    accent4: '#EAE950'
-  };
-
-  // Sample data structure based on the CSV analysis
-  const [dashboardData, setDashboardData] = useState(null);
-
-  useEffect(() => {
-    // Read the CSV data when component mounts
-    const loadData = async () => {
-      try {
-        const fileContent = await window.fs.readFile('20250819T12_55_17.397Z Three Flow Workspace  Underwriting Ops.csv', { encoding: 'utf8' });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreeFlow Managed Pilot Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        // Parse CSV
-        const Papa = await import('papaparse');
-        const _ = await import('lodash');
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
         
-        const parsedData = Papa.parse(fileContent, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          delimitersToGuess: [',', '\t', '|', ';']
-        });
-
-        const data = parsedData.data;
-
-        // Process broker statistics
-        const brokerStats = _.chain(data)
-          .groupBy('Broker (drop down)')
-          .mapValues(tasks => ({
-            total: tasks.length,
-            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
-            renewalStatus: _.countBy(tasks, 'Renewal Doc Status (drop down)'),
-            carriers: _.uniq(tasks.map(t => t['Carrier (short text)'])).length,
-            eligibleLives: _.sumBy(tasks, t => t['Eligible Lives (number)'] || 0),
-            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
-          }))
-          .value();
-
-        // Process carrier statistics
-        const carrierStats = _.chain(data)
-          .groupBy('Carrier (short text)')
-          .mapValues(tasks => ({
-            total: tasks.length,
-            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
-            brokers: _.uniq(tasks.map(t => t['Broker (drop down)'])).length,
-            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
-          }))
-          .value();
-
-        // Parse renewal dates and group by month
-        const renewalByMonth = _.chain(data)
-          .map(row => {
-            const dateStr = row['Renewal date (date)'];
-            if (!dateStr) return null;
-            
-            const match = dateStr.match(/(\w+,\s)?(\w+)\s(\d+)\w+\s(\d{4})/);
-            if (match) {
-              const [, , month, day, year] = match;
-              return {
-                ...row,
-                renewalMonth: `${year}-${month}`,
-                renewalYear: year
-              };
-            }
-            return null;
-          })
-          .filter(Boolean)
-          .groupBy('renewalMonth')
-          .mapValues(tasks => ({
-            month: tasks[0]?.renewalMonth,
-            total: tasks.length,
-            collected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length,
-            notCollected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Not Collected').length,
-            collectionRate: (tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length / tasks.length * 100).toFixed(1)
-          }))
-          .values()
-          .sortBy('month')
-          .value();
-
-        // Overall statistics
-        const overallStats = {
-          totalTasks: data.length,
-          collectionStatus: _.countBy(data, 'Collection Status (drop down)'),
-          renewalStatus: _.countBy(data, 'Renewal Doc Status (drop down)'),
-          taskStatus: _.countBy(data, 'Status'),
-          totalBrokers: Object.keys(brokerStats).length,
-          totalCarriers: Object.keys(carrierStats).length,
-          totalEligibleLives: _.sumBy(data, t => t['Eligible Lives (number)'] || 0)
-        };
-
-        setDashboardData({
-          rawData: data,
-          brokerStats,
-          carrierStats,
-          overallStats,
-          renewalByMonth
-        });
-
-      } catch (error) {
-        console.error('Error loading data:', error);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Compute filtered data based on selected broker
-  const filteredData = useMemo(() => {
-    if (!dashboardData || selectedBroker === 'All Brokers') {
-      return dashboardData;
-    }
-    
-    const filtered = dashboardData.rawData.filter(row => row['Broker (drop down)'] === selectedBroker);
-    return {
-      ...dashboardData,
-      filteredRawData: filtered,
-      filteredStats: {
-        totalTasks: filtered.length,
-        collectionStatus: filtered.reduce((acc, row) => {
-          const status = row['Collection Status (drop down)'];
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {})
-      }
-    };
-  }, [dashboardData, selectedBroker]);
-
-  if (!dashboardData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" style={{ fontFamily: 'Lato, sans-serif' }}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
-          <p className="text-gray-600">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Prepare chart data
-  const collectionStatusData = Object.entries(dashboardData.overallStats.collectionStatus).map(([status, count]) => ({
-    name: status,
-    value: count,
-    percentage: (count / dashboardData.overallStats.totalTasks * 100).toFixed(1)
-  }));
-
-  const brokerPerformanceData = Object.entries(dashboardData.brokerStats)
-    .map(([broker, stats]) => ({
-      name: broker.length > 20 ? broker.substring(0, 20) + '...' : broker,
-      fullName: broker,
-      total: stats.total,
-      complete: stats.collectionStatus.Complete || 0,
-      pending: stats.collectionStatus.Pending || 0,
-      escalated: stats.collectionStatus.Escalated || 0,
-      completionRate: parseFloat(stats.completionRate),
-      carriers: stats.carriers,
-      eligibleLives: stats.eligibleLives
-    }))
-    .sort((a, b) => b.total - a.total);
-
-  const topCarriersData = Object.entries(dashboardData.carrierStats)
-    .map(([carrier, stats]) => ({
-      name: carrier,
-      total: stats.total,
-      completionRate: parseFloat(stats.completionRate),
-      brokers: stats.brokers
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
-
-  const pieColors = [colors.primary, colors.warning, colors.secondary, colors.success, colors.purple];
-
-  const toggleBrokerExpansion = (broker) => {
-    const newExpanded = new Set(expandedBrokers);
-    if (newExpanded.has(broker)) {
-      newExpanded.delete(broker);
-    } else {
-      newExpanded.add(broker);
-    }
-    setExpandedBrokers(newExpanded);
-  };
-
-  const MetricCard = ({ title, value, subtitle, icon: Icon, color, change }) => (
-    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: color }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
-        </div>
-        <div className="flex flex-col items-center">
-          <Icon size={32} style={{ color }} />
-          {change && (
-            <div className="flex items-center mt-2">
-              <TrendingUp size={16} style={{ color: change > 0 ? colors.success : colors.warning }} />
-              <span className="text-sm font-medium" style={{ color: change > 0 ? colors.success : colors.warning }}>
-                {change > 0 ? '+' : ''}{change}%
-              </span>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 4px solid #00B980;
+            padding: 32px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #000099;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .broker-select {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            font-family: 'Lato', sans-serif;
+            font-size: 14px;
+            color: #374151;
+            min-width: 200px;
+        }
+        
+        .broker-select:focus {
+            outline: none;
+            border-color: #00B980;
+        }
+        
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin: 32px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 6px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .metric-card.primary { border-left-color: #00B980; }
+        .metric-card.success { border-left-color: #1A7848; }
+        .metric-card.secondary { border-left-color: #000099; }
+        .metric-card.purple { border-left-color: #8A288E; }
+        
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .metric-icon.primary { background-color: #00B980; }
+        .metric-icon.success { background-color: #1A7848; }
+        .metric-icon.secondary { background-color: #000099; }
+        .metric-icon.purple { background-color: #8A288E; }
+        
+        .metric-title {
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .metric-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Insights Section */
+        .insights-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 16px;
+            padding: 32px;
+            margin: 40px 0;
+        }
+        
+        .insights-title {
+            color: #92400e;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 32px;
+        }
+        
+        .insights-column h4 {
+            color: #1f2937;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+        }
+        
+        .insights-column ul {
+            list-style: none;
+        }
+        
+        .insights-column li {
+            color: #374151;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        
+        /* Broker Performance */
+        .brokers-section {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 40px 0;
+        }
+        
+        .section-title {
+            color: #000099;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+            border-bottom: 3px solid #00B980;
+            padding-bottom: 16px;
+        }
+        
+        .broker-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .broker-item:hover {
+            border-color: #00B980;
+            box-shadow: 0 4px 12px rgba(0,185,128,0.15);
+        }
+        
+        .broker-header {
+            padding: 24px;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .broker-info h3 {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .broker-stats {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        
+        .progress-container {
+            width: 100%;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #e5e7eb;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00B980 0%, #1A7848 100%);
+            border-radius: 5px;
+            transition: width 0.8s ease;
+        }
+        
+        .completion-rate {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .completion-rate.high { color: #1A7848; }
+        .completion-rate.medium { color: #D7CC43; }
+        .completion-rate.low { color: #ef4444; }
+        
+        .broker-details {
+            padding: 24px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: none;
+        }
+        
+        .broker-details.expanded {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        
+        .detail-item {
+            text-align: center;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .detail-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .detail-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .detail-item.complete .detail-value { color: #1A7848; }
+        .detail-item.pending .detail-value { color: #D7CC43; }
+        .detail-item.escalated .detail-value { color: #ef4444; }
+        .detail-item.carriers .detail-value { color: #8A288E; }
+        
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 32px 0;
+            margin-top: 48px;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .threeflow-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .brand-dot {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #00B980 0%, #1A7848 100%);
+            border-radius: 50%;
+        }
+        
+        .chevron {
+            transition: transform 0.3s ease;
+            color: #6b7280;
+        }
+        
+        .chevron.expanded {
+            transform: rotate(90deg);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .metrics-grid { grid-template-columns: 1fr; }
+            .insights-grid { grid-template-columns: 1fr; }
+            .broker-header { flex-direction: column; text-align: center; gap: 16px; }
+            .details-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <h1>Managed by Three Flow Pilot</h1>
+            <p>Document Collection Progress Dashboard</p>
+            <div class="header-controls">
+                <select class="broker-select" id="brokerSelect">
+                    <option value="all">All Brokers</option>
+                    <option value="mcgohan">McGohan Brabender</option>
+                    <option value="baldwin">The Baldwin Group - Southwest</option>
+                    <option value="mcgriff">McGriff Insurance - Blue Ridge</option>
+                    <option value="marsh-va">Marsh McLennan - Virginia</option>
+                    <option value="cac">CAC Agency</option>
+                    <option value="marsh-fl">Marsh McLennan - Florida</option>
+                </select>
             </div>
-          )}
         </div>
-      </div>
     </div>
-  );
 
-  return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Lato, sans-serif' }}>
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b" style={{ borderBottomColor: colors.primary }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: colors.secondary }}>
-                Managed by Three Flow Pilot
-              </h1>
-              <p className="text-gray-600 mt-1">Document Collection Progress Dashboard</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <select
-                value={selectedBroker}
-                onChange={(e) => setSelectedBroker(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                style={{ focusRingColor: colors.primary }}
-              >
-                <option value="All Brokers">All Brokers</option>
-                {Object.keys(dashboardData.brokerStats).map(broker => (
-                  <option key={broker} value={broker}>{broker}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <MetricCard
-            title="Total Tasks"
-            value={dashboardData.overallStats.totalTasks.toLocaleString()}
-            subtitle="Active collection tasks"
-            icon={FileText}
-            color={colors.primary}
-          />
-          <MetricCard
-            title="Completion Rate"
-            value={`${((dashboardData.overallStats.collectionStatus.Complete || 0) / dashboardData.overallStats.totalTasks * 100).toFixed(1)}%`}
-            subtitle={`${dashboardData.overallStats.collectionStatus.Complete || 0} completed`}
-            icon={CheckCircle}
-            color={colors.success}
-          />
-          <MetricCard
-            title="Active Brokers"
-            value={dashboardData.overallStats.totalBrokers}
-            subtitle="Partner organizations"
-            icon={Users}
-            color={colors.secondary}
-          />
-          <MetricCard
-            title="Eligible Lives"
-            value={dashboardData.overallStats.totalEligibleLives.toLocaleString()}
-            subtitle="Total covered individuals"
-            icon={Calendar}
-            color={colors.purple}
-          />
-        </div>
-
-        {/* Alert Section - Key Insights */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <AlertCircle className="mr-3" style={{ color: colors.warning }} size={24} />
-            <h3 className="text-lg font-semibold text-gray-900">Key Insights & Action Items</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-medium mb-2" style={{ color: colors.secondary }}>⚠️ Priority Actions:</p>
-              <ul className="space-y-1 text-gray-700">
-                <li>• 50.2% tasks still "Not Started" - need acceleration</li>
-                <li>• 242 tasks escalated - require immediate attention</li>
-                <li>• Focus on top 3 brokers handling 80% of volume</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-medium mb-2" style={{ color: colors.success }}>✅ Successes:</p>
-              <ul className="space-y-1 text-gray-700">
-                <li>• 34.3% completion rate (Complete + Broker Provided)</li>
-                <li>• Strong engagement with 72 different carriers</li>
-                <li>• 1.2M+ eligible lives being managed</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Collection Status Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
-              Collection Status Distribution
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={collectionStatusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({name, percentage}) => `${name}: ${percentage}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {collectionStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
-              Top Performing Carriers
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topCarriersData.slice(0, 8)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  fontSize={10}
-                />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="total" fill={colors.primary} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Broker Performance Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h3 className="text-xl font-semibold mb-6" style={{ color: colors.secondary }}>
-            Broker Performance Analysis
-          </h3>
-          
-          <div className="space-y-4">
-            {brokerPerformanceData.map((broker, index) => (
-              <div key={broker.fullName} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleBrokerExpansion(broker.fullName)}>
-                  <div className="flex items-center space-x-4">
-                    {expandedBrokers.has(broker.fullName) ? 
-                      <ChevronDown size={20} style={{ color: colors.secondary }} /> :
-                      <ChevronRight size={20} style={{ color: colors.secondary }} />
-                    }
+    <div class="container">
+        <!-- Key Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card primary">
+                <div class="metric-header">
                     <div>
-                      <h4 className="font-semibold text-lg">{broker.fullName}</h4>
-                      <p className="text-gray-600">
-                        {broker.total} tasks • {broker.carriers} carriers • {broker.eligibleLives.toLocaleString()} lives
-                      </p>
+                        <div class="metric-title">Total Tasks</div>
+                        <div class="metric-value" id="totalTasks">3,951</div>
+                        <div class="metric-subtitle">Active collection tasks</div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold" style={{ color: broker.completionRate > 20 ? colors.success : colors.warning }}>
-                      {broker.completionRate}%
-                    </div>
-                    <p className="text-gray-500">completion rate</p>
-                  </div>
+                    <div class="metric-icon primary">📄</div>
                 </div>
-                
-                {expandedBrokers.has(broker.fullName) && (
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.success + '20' }}>
-                        <div className="text-xl font-bold" style={{ color: colors.success }}>
-                          {broker.complete}
-                        </div>
-                        <div className="text-sm text-gray-600">Complete</div>
-                      </div>
-                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.warning + '20' }}>
-                        <div className="text-xl font-bold" style={{ color: colors.warning }}>
-                          {broker.pending}
-                        </div>
-                        <div className="text-sm text-gray-600">Pending</div>
-                      </div>
-                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.secondary + '20' }}>
-                        <div className="text-xl font-bold" style={{ color: colors.secondary }}>
-                          {broker.escalated}
-                        </div>
-                        <div className="text-sm text-gray-600">Escalated</div>
-                      </div>
-                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.purple + '20' }}>
-                        <div className="text-xl font-bold" style={{ color: colors.purple }}>
-                          {broker.carriers}
-                        </div>
-                        <div className="text-sm text-gray-600">Carriers</div>
-                      </div>
-                    </div>
-                    
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="h-3 rounded-full" 
-                        style={{ 
-                          width: `${broker.completionRate}%`, 
-                          backgroundColor: colors.primary 
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Renewal Timeline */}
-        {dashboardData.renewalByMonth && dashboardData.renewalByMonth.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
-              Renewal Timeline & Collection Status
-            </h3>
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart data={dashboardData.renewalByMonth} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Area type="monotone" dataKey="collected" stackId="1" stroke={colors.success} fill={colors.success} />
-                <Area type="monotone" dataKey="notCollected" stackId="1" stroke={colors.warning} fill={colors.warning} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-white border-t mt-12 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <p className="text-gray-500">
-              Last updated: {new Date().toLocaleDateString()} | Data source: ThreeFlow Workspace
-            </p>
-            <div className="flex items-center space-x-4">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.primary }}></div>
-              <span className="text-sm text-gray-600">ThreeFlow</span>
             </div>
-          </div>
+            
+            <div class="metric-card success">
+                <div class="metric-header">
+                    <div>
+                        <div class="metric-title">Completion Rate</div>
+                        <div class="metric-value" id="completionRate">17.5%</div>
+                        <div class="metric-subtitle">693 completed tasks</div>
+                    </div>
+                    <div class="metric-icon success">✅</div>
+                </div>
+            </div>
+            
+            <div class="metric-card secondary">
+                <div class="metric-header">
+                    <div>
+                        <div class="metric-title">Active Brokers</div>
+                        <div class="metric-value" id="activeBrokers">12</div>
+                        <div class="metric-subtitle">Partner organizations</div>
+                    </div>
+                    <div class="metric-icon secondary">👥</div>
+                </div>
+            </div>
+            
+            <div class="metric-card purple">
+                <div class="metric-header">
+                    <div>
+                        <div class="metric-title">Eligible Lives</div>
+                        <div class="metric-value" id="eligibleLives">1.22M</div>
+                        <div class="metric-subtitle">Total covered individuals</div>
+                    </div>
+                    <div class="metric-icon purple">🏥</div>
+                </div>
+            </div>
         </div>
-      </footer>
-    </div>
-  );
-};
 
-export default ThreeFlowDashboard;
+        <!-- Key Insights -->
+        <div class="insights-section">
+            <div class="insights-title">
+                ⚠️ Key Insights & Action Items
+            </div>
+            <div class="insights-grid">
+                <div class="insights-column">
+                    <h4 style="color: #000099;">⚠️ Priority Actions:</h4>
+                    <ul>
+                        <li>50.2% tasks still "Not Started" - need acceleration</li>
+                        <li>242 tasks escalated - require immediate attention</li>
+                        <li>Focus on top 3 brokers handling 80% of volume</li>
+                        <li>Implement automated follow-up for stalled tasks</li>
+                        <li>Review escalation processes for efficiency</li>
+                    </ul>
+                </div>
+                <div class="insights-column">
+                    <h4 style="color: #1A7848;">✅ Successes:</h4>
+                    <ul>
+                        <li>34.3% completion rate (Complete + Broker Provided)</li>
+                        <li>Strong engagement with 72 different carriers</li>
+                        <li>1.2M+ eligible lives being managed successfully</li>
+                        <li>Consistent progress across major brokers</li>
+                        <li>Effective collaboration with partner organizations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Broker Performance -->
+        <div class="brokers-section">
+            <h2 class="section-title">Broker Performance Analysis</h2>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker1')">
+                    <div class="broker-info">
+                        <h3>McGohan Brabender</h3>
+                        <div class="broker-stats">1,245 tasks • 15 carriers • 425,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 23%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate high">23%</div>
+                        <span class="chevron" id="chevron1">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details1">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">286</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">124</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">78</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">15</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker2')">
+                    <div class="broker-info">
+                        <h3>The Baldwin Group - Southwest</h3>
+                        <div class="broker-stats">892 tasks • 12 carriers • 298,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 18%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate medium">18%</div>
+                        <span class="chevron" id="chevron2">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details2">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">161</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">89</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">54</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">12</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker3')">
+                    <div class="broker-info">
+                        <h3>McGriff Insurance - Blue Ridge</h3>
+                        <div class="broker-stats">567 tasks • 9 carriers • 189,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 15%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate medium">15%</div>
+                        <span class="chevron" id="chevron3">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details3">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">85</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">57</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">34</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">9</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker4')">
+                    <div class="broker-info">
+                        <h3>Marsh McLennan - Virginia</h3>
+                        <div class="broker-stats">445 tasks • 8 carriers • 145,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 21%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate high">21%</div>
+                        <span class="chevron" id="chevron4">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details4">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">93</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">44</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">27</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">8</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker5')">
+                    <div class="broker-info">
+                        <h3>CAC Agency</h3>
+                        <div class="broker-stats">334 tasks • 6 carriers • 89,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 12%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate low">12%</div>
+                        <span class="chevron" id="chevron5">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details5">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">40</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">33</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">20</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">6</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="broker-item">
+                <div class="broker-header" onclick="toggleBroker('broker6')">
+                    <div class="broker-info">
+                        <h3>Marsh McLennan - Florida</h3>
+                        <div class="broker-stats">278 tasks • 7 carriers • 67,000 lives</div>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 19%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="completion-rate medium">19%</div>
+                        <span class="chevron" id="chevron6">▶</span>
+                    </div>
+                </div>
+                <div class="broker-details" id="details6">
+                    <div class="details-grid">
+                        <div class="detail-item complete">
+                            <div class="detail-value">53</div>
+                            <div class="detail-label">Complete</div>
+                        </div>
+                        <div class="detail-item pending">
+                            <div class="detail-value">28</div>
+                            <div class="detail-label">Pending</div>
+                        </div>
+                        <div class="detail-item escalated">
+                            <div class="detail-value">17</div>
+                            <div class="detail-label">Escalated</div>
+                        </div>
+                        <div class="detail-item carriers">
+                            <div class="detail-value">7</div>
+                            <div class="detail-label">Carriers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="container">
+            <p>Last updated: <span id="currentDate"></span> | Data source: ThreeFlow Workspace</p>
+            <div class="threeflow-brand">
+                <div class="brand-dot"></div>
+                <span style="font-weight: 600; color: #1f2937;">ThreeFlow</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
+        
+        // Toggle broker details
+        function toggleBroker(brokerId) {
+            const details = document.getElementById('details' + brokerId.slice(-1));
+            const chevron = document.getElementById('chevron' + brokerId.slice(-1));
+            
+            details.classList.toggle('expanded');
+            chevron.classList.toggle('expanded');
+        }
+        
+        // Broker filtering functionality
+        document.getElementById('brokerSelect').addEventListener('change', function() {
+            const selectedBroker = this.value;
+            console.log('Selected broker:', selectedBroker);
+            // Here you would implement the filtering logic
+            // For now, just log the selection
+        });
+        
+        // Animate progress bars on load
+        window.addEventListener('load', function() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+        });
+        
+        console.log('ThreeFlow Dashboard loaded successfully!');
+    </script>
+</body>
+</html>
