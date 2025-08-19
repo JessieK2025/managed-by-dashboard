@@ -517,6 +517,8 @@
         .detail-item.complete .detail-value { color: #1A7848; }
         .detail-item.pending .detail-value { color: #D7CC43; }
         .detail-item.escalated .detail-value { color: #ef4444; }
+        .detail-item.not-started .detail-value { color: #f59e0b; }
+        .detail-item.broker-provided .detail-value { color: #8B5CF6; }
         .detail-item.carriers .detail-value { color: #8A288E; }
         
         .chevron {
@@ -990,9 +992,17 @@
                                     <div class="detail-value">${broker.escalated}</div>
                                     <div class="detail-label">Escalated</div>
                                 </div>
+                                <div class="detail-item not-started">
+                                    <div class="detail-value">${broker.notStarted}</div>
+                                    <div class="detail-label">Not Started</div>
+                                </div>
                                 <div class="detail-item carriers">
                                     <div class="detail-value">${broker.carriers.size}</div>
                                     <div class="detail-label">Carriers</div>
+                                </div>
+                                <div class="detail-item broker-provided">
+                                    <div class="detail-value">${broker.brokerProvided}</div>
+                                    <div class="detail-label">Broker Provided</div>
                                 </div>
                             </div>
                         </div>
