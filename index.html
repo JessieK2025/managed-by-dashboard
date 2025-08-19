@@ -463,8 +463,16 @@
                     <option value="all">All Brokers</option>
                 </select>
                 
-                <select class="broker-select" id="renewalFilter">
-                    <option value="all">All Renewal Dates</option>
+                <select class="broker-select" id="renewalFilter" multiple>
+                    <option value="all" selected>All Renewal Dates</option>
+                    <option value="2024-10-01">October 1, 2024</option>
+                    <option value="2024-11-01">November 1, 2024</option>
+                    <option value="2024-12-01">December 1, 2024</option>
+                    <option value="2025-01-01">January 1, 2025</option>
+                    <option value="2025-10-01">October 1, 2025</option>
+                    <option value="2025-11-01">November 1, 2025</option>
+                    <option value="2025-12-01">December 1, 2025</option>
+                    <option value="2026-01-01">January 1, 2026</option>
                 </select>
             </div>
         </div>
@@ -758,15 +766,20 @@
             });
         }
         
+        
         function updateRenewalDropdown() {
             const select = document.getElementById('renewalFilter');
-            select.innerHTML = '<option value="all">All Renewal Dates</option>';
+            // Keep the default multi-select options, but add dynamic ones from CSV
+            const existingOptions = Array.from(select.options).map(opt => opt.value);
             
             processedData.renewals.forEach(renewal => {
-                const option = document.createElement('option');
-                option.value = renewal.period;
-                option.textContent = renewal.period;
-                select.appendChild(option);
+                const value = renewal.period.toLowerCase().replace(' ', '-');
+                if (!existingOptions.includes(value)) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = renewal.period;
+                    select.appendChild(option);
+                }
             });
         }
         
@@ -960,15 +973,84 @@
         // Filter functionality
         document.getElementById('brokerSelect').addEventListener('change', function() {
             const selectedBroker = this.value;
-            // Filter broker view (implementation depends on your needs)
+            applyFilters();
         });
         
         document.getElementById('renewalFilter').addEventListener('change', function() {
-            const selectedRenewal = this.value;
-            // Filter renewal view (implementation depends on your needs)
+            const selectedRenewals = Array.from(this.selectedOptions).map(option => option.value);
+            applyFilters();
         });
         
-        // Initialize on page load
+        function applyFilters() {
+            const selectedBroker = document.getElementById('brokerSelect').value;
+            const selectedRenewals = Array.from(document.getElementById('renewalFilter').selectedOptions).map(option => option.value);
+            
+            let filteredData = csvData;
+            
+            // Filter by broker
+            if (selectedBroker !== 'all') {
+                filteredData = filteredData.filter(row => row['Broker (drop down)'] === selectedBroker);
+            }
+            
+            // Filter by renewal dates
+            if (!selectedRenewals.includes('all')) {
+                filteredData = filteredData.filter(row => {
+                    const renewalDate = row['Renewal date (date)'] || '';
+                    return selectedRenewals.some(selectedDate => {
+                        if (selectedDate.includes('2024-10-01') || selectedDate.includes('2025-10-01')) {
+                            return renewalDate.toLowerCase().includes('october') && renewalDate.includes('1');
+                        } else if (selectedDate.includes('2024-11-01') || selectedDate.includes('2025-11-01')) {
+                            return renewalDate.toLowerCase().includes('november') && renewalDate.includes('1');
+                        } else if (selectedDate.includes('2024-12-01') || selectedDate.includes('2025-12-01')) {
+                            return renewalDate.toLowerCase().includes('december') && renewalDate.includes('1');
+                        } else if (selectedDate.includes('2025-01-01') || selectedDate.includes('2026-01-01')) {
+                            return renewalDate.toLowerCase().includes('january') && renewalDate.includes('1');
+                        }
+                        return false;
+                    });
+                });
+            }
+            
+            // Reprocess with filtered data
+            const filteredProcessedData = processCSVData(filteredData);
+            processedData = filteredProcessedData;
+            
+            // Update UI
+            updateMetrics();
+            updateRenewalTimeline();
+            updateBrokerSection();
+            updateInsights();
+            
+            // Update section title
+            const sectionTitle = document.getElementById('brokerSectionTitle');
+            if (selectedBroker === 'all') {
+                sectionTitle.textContent = 'Broker Performance Analysis';
+            } else {
+                sectionTitle.textContent = `${selectedBroker} - Detailed Analysis`;
+            }
+            
+            // Show filter status
+            let filterStatus = '';
+            if (selectedBroker !== 'all') {
+                filterStatus += `Broker: ${selectedBroker}`;
+            }
+            if (!selectedRenewals.includes('all')) {
+                const renewalText = selectedRenewals.map(date => {
+                    if (date.includes('10-01')) return 'Oct 1';
+                    if (date.includes('11-01')) return 'Nov 1';
+                    if (date.includes('12-01')) return 'Dec 1';
+                    if (date.includes('01-01')) return 'Jan 1';
+                    return date;
+                }).join(', ');
+                filterStatus += (filterStatus ? ' | ' : '') + `Renewals: ${renewalText}`;
+            }
+            
+            if (filterStatus) {
+                showStatus(`Filtered: ${filterStatus} (${filteredData.length} tasks)`, 'success');
+            }
+        }
+        
+            // Initialize on page load
         window.addEventListener('load', function() {
             initializeSampleData();
             
@@ -986,7 +1068,9 @@
         });
         
         console.log('ThreeFlow Dashboard with CSV upload loaded successfully!');
-    </script> {
+    </script>
+</body>
+</html> {
                     mcgohan: 'McGohan Brabender',
                     baldwin: 'The Baldwin Group - Southwest',
                     mcgriff: 'McGriff Insurance - Blue Ridge',
