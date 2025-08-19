@@ -1,534 +1,475 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThreeFlow Managed Pilot Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lodash@4.17.21/lodash.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Lato', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9fafb;
-        }
-        .dashboard-container {
-            min-height: 100vh;
-        }
-        .threeflow-primary { color: #00B980; }
-        .threeflow-secondary { color: #000099; }
-        .threeflow-success { color: #1A7848; }
-        .threeflow-warning { color: #D7CC43; }
-        .threeflow-purple { color: #8A288E; }
-        .bg-threeflow-primary { background-color: #00B980; }
-        .bg-threeflow-secondary { background-color: #000099; }
-        .border-threeflow-primary { border-color: #00B980; }
-        .ring-threeflow-primary { --tw-ring-color: #00B980; }
-    </style>
-</head>
-<body>
-    <div id="dashboard-root"></div>
+import React, { useState, useMemo, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
+import { Calendar, Users, FileText, TrendingUp, AlertCircle, CheckCircle, Clock, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 
-    <script type="text/babel">
-        const { useState, useMemo, useEffect } = React;
-        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } = Recharts;
+const ThreeFlowDashboard = () => {
+  const [selectedBroker, setSelectedBroker] = useState('All Brokers');
+  const [selectedView, setSelectedView] = useState('overview');
+  const [expandedBrokers, setExpandedBrokers] = useState(new Set());
+  
+  // ThreeFlow brand colors
+  const colors = {
+    primary: '#00B980',
+    secondary: '#000099', 
+    success: '#1A7848',
+    warning: '#D7CC43',
+    purple: '#8A288E',
+    light: '#85DABA',
+    accent1: '#53B684',
+    accent2: '#7A7FF5',
+    accent3: '#B263C8',
+    accent4: '#EAE950'
+  };
 
-        // Mock Icons (simplified versions)
-        const FileText = ({ size = 24, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10,9 9,9 8,9"/>
-            </svg>
-        );
+  // Sample data structure based on the CSV analysis
+  const [dashboardData, setDashboardData] = useState(null);
 
-        const CheckCircle = ({ size = 24, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22,4 12,14.01 9,11.01"/>
-            </svg>
-        );
+  useEffect(() => {
+    // Read the CSV data when component mounts
+    const loadData = async () => {
+      try {
+        const fileContent = await window.fs.readFile('20250819T12_55_17.397Z Three Flow Workspace  Underwriting Ops.csv', { encoding: 'utf8' });
+        
+        // Parse CSV
+        const Papa = await import('papaparse');
+        const _ = await import('lodash');
+        
+        const parsedData = Papa.parse(fileContent, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          delimitersToGuess: [',', '\t', '|', ';']
+        });
 
-        const Users = ({ size = 24, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-        );
+        const data = parsedData.data;
 
-        const Calendar = ({ size = 24, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-        );
+        // Process broker statistics
+        const brokerStats = _.chain(data)
+          .groupBy('Broker (drop down)')
+          .mapValues(tasks => ({
+            total: tasks.length,
+            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
+            renewalStatus: _.countBy(tasks, 'Renewal Doc Status (drop down)'),
+            carriers: _.uniq(tasks.map(t => t['Carrier (short text)'])).length,
+            eligibleLives: _.sumBy(tasks, t => t['Eligible Lives (number)'] || 0),
+            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
+          }))
+          .value();
 
-        const AlertCircle = ({ size = 24, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-        );
+        // Process carrier statistics
+        const carrierStats = _.chain(data)
+          .groupBy('Carrier (short text)')
+          .mapValues(tasks => ({
+            total: tasks.length,
+            collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
+            brokers: _.uniq(tasks.map(t => t['Broker (drop down)'])).length,
+            completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
+          }))
+          .value();
 
-        const ChevronDown = ({ size = 20, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <polyline points="6,9 12,15 18,9"/>
-            </svg>
-        );
-
-        const ChevronRight = ({ size = 20, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <polyline points="9,18 15,12 9,6"/>
-            </svg>
-        );
-
-        const TrendingUp = ({ size = 16, color = "#666" }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-                <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/>
-                <polyline points="17,6 23,6 23,12"/>
-            </svg>
-        );
-
-        const ThreeFlowDashboard = () => {
-            const [selectedBroker, setSelectedBroker] = useState('All Brokers');
-            const [expandedBrokers, setExpandedBrokers] = useState(new Set());
-            const [dashboardData, setDashboardData] = useState(null);
-
-            // ThreeFlow brand colors
-            const colors = {
-                primary: '#00B980',
-                secondary: '#000099', 
-                success: '#1A7848',
-                warning: '#D7CC43',
-                purple: '#8A288E',
-                light: '#85DABA',
-                accent1: '#53B684',
-                accent2: '#7A7FF5',
-                accent3: '#B263C8',
-                accent4: '#EAE950'
-            };
-
-            // Mock data generation
-            const generateMockData = () => {
-                const brokers = [
-                    "McGohan Brabender", 
-                    "The Baldwin Group - Southwest", 
-                    "McGriff Insurance - Blue Ridge", 
-                    "Marsh McLennan - Virginia", 
-                    "CAC Agency", 
-                    "Marsh McLennan - Florida",
-                    "Marsh McLennan - MN/WI",
-                    "Marsh McLennan - South Carolina",
-                    "Marsh McLennan - North Carolina",
-                    "The Baldwin Group - Central",
-                    "McGriff Insurance - Southeast",
-                    "Regional Benefits Group"
-                ];
-                
-                const carriers = [
-                    "Standard", "Blue Cross Blue Shield", "Equitable", "Guardian", 
-                    "Mutual Of Omaha", "Delta Dental", "CareFactor", "Versant Health",
-                    "Delta Dental of Arizona", "Delta Dental of Ohio", "MetLife", "Cigna"
-                ];
-                
-                const statuses = ["Not started", "Pending", "Escalated", "Complete", "Broker Provided"];
-                const renewalStatuses = ["Renewal Not Collected", "Renewal Collected"];
-                
-                const data = [];
-                const statusDistribution = {
-                    "Not started": 0.502,
-                    "Pending": 0.093,
-                    "Escalated": 0.061,
-                    "Complete": 0.175,
-                    "Broker Provided": 0.169
-                };
-
-                // Generate 3951 mock records
-                for (let i = 0; i < 3951; i++) {
-                    const random = Math.random();
-                    let selectedStatus = "Not started";
-                    let cumulative = 0;
-                    
-                    for (const [status, probability] of Object.entries(statusDistribution)) {
-                        cumulative += probability;
-                        if (random <= cumulative) {
-                            selectedStatus = status;
-                            break;
-                        }
-                    }
-
-                    data.push({
-                        "Task ID": `task_${i}`,
-                        "Task Name": `Task ${i + 1}`,
-                        "Broker (drop down)": brokers[Math.floor(Math.random() * brokers.length)],
-                        "Carrier (short text)": carriers[Math.floor(Math.random() * carriers.length)],
-                        "Collection Status (drop down)": selectedStatus,
-                        "Renewal Doc Status (drop down)": Math.random() > 0.7 ? "Renewal Collected" : "Renewal Not Collected",
-                        "Renewal date (date)": `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][Math.floor(Math.random() * 12)]} ${Math.floor(Math.random() * 28) + 1}, ${2025 + Math.floor(Math.random() * 3)}`,
-                        "Eligible Lives (number)": Math.floor(Math.random() * 500) + 10,
-                        "Status": "active"
-                    });
-                }
-                
-                return data;
-            };
-
-            useEffect(() => {
-                const data = generateMockData();
-                
-                // Process broker statistics
-                const brokerStats = _.chain(data)
-                    .groupBy('Broker (drop down)')
-                    .mapValues(tasks => ({
-                        total: tasks.length,
-                        collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
-                        renewalStatus: _.countBy(tasks, 'Renewal Doc Status (drop down)'),
-                        carriers: _.uniq(tasks.map(t => t['Carrier (short text)'])).length,
-                        eligibleLives: _.sumBy(tasks, t => t['Eligible Lives (number)'] || 0),
-                        completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
-                    }))
-                    .value();
-
-                // Process carrier statistics
-                const carrierStats = _.chain(data)
-                    .groupBy('Carrier (short text)')
-                    .mapValues(tasks => ({
-                        total: tasks.length,
-                        collectionStatus: _.countBy(tasks, 'Collection Status (drop down)'),
-                        brokers: _.uniq(tasks.map(t => t['Broker (drop down)'])).length,
-                        completionRate: ((_.countBy(tasks, 'Collection Status (drop down)')['Complete'] || 0) / tasks.length * 100).toFixed(1)
-                    }))
-                    .value();
-
-                // Overall statistics
-                const overallStats = {
-                    totalTasks: data.length,
-                    collectionStatus: _.countBy(data, 'Collection Status (drop down)'),
-                    renewalStatus: _.countBy(data, 'Renewal Doc Status (drop down)'),
-                    totalBrokers: Object.keys(brokerStats).length,
-                    totalCarriers: Object.keys(carrierStats).length,
-                    totalEligibleLives: _.sumBy(data, t => t['Eligible Lives (number)'] || 0)
-                };
-
-                setDashboardData({
-                    rawData: data,
-                    brokerStats,
-                    carrierStats,
-                    overallStats
-                });
-            }, []);
-
-            const toggleBrokerExpansion = (broker) => {
-                const newExpanded = new Set(expandedBrokers);
-                if (newExpanded.has(broker)) {
-                    newExpanded.delete(broker);
-                } else {
-                    newExpanded.add(broker);
-                }
-                setExpandedBrokers(newExpanded);
-            };
-
-            const MetricCard = ({ title, value, subtitle, icon: Icon, color }) => (
-                <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: color }}>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-600 text-sm font-medium">{title}</p>
-                            <p className="text-2xl font-bold text-gray-900">{value}</p>
-                            {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
-                        </div>
-                        <div className="flex flex-col items-center">
-                            <Icon size={32} color={color} />
-                        </div>
-                    </div>
-                </div>
-            );
-
-            if (!dashboardData) {
-                return (
-                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
-                            <p className="text-gray-600">Loading dashboard data...</p>
-                        </div>
-                    </div>
-                );
+        // Parse renewal dates and group by month
+        const renewalByMonth = _.chain(data)
+          .map(row => {
+            const dateStr = row['Renewal date (date)'];
+            if (!dateStr) return null;
+            
+            const match = dateStr.match(/(\w+,\s)?(\w+)\s(\d+)\w+\s(\d{4})/);
+            if (match) {
+              const [, , month, day, year] = match;
+              return {
+                ...row,
+                renewalMonth: `${year}-${month}`,
+                renewalYear: year
+              };
             }
+            return null;
+          })
+          .filter(Boolean)
+          .groupBy('renewalMonth')
+          .mapValues(tasks => ({
+            month: tasks[0]?.renewalMonth,
+            total: tasks.length,
+            collected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length,
+            notCollected: tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Not Collected').length,
+            collectionRate: (tasks.filter(t => t['Renewal Doc Status (drop down)'] === 'Renewal Collected').length / tasks.length * 100).toFixed(1)
+          }))
+          .values()
+          .sortBy('month')
+          .value();
 
-            // Prepare chart data
-            const collectionStatusData = Object.entries(dashboardData.overallStats.collectionStatus).map(([status, count]) => ({
-                name: status,
-                value: count,
-                percentage: (count / dashboardData.overallStats.totalTasks * 100).toFixed(1)
-            }));
-
-            const brokerPerformanceData = Object.entries(dashboardData.brokerStats)
-                .map(([broker, stats]) => ({
-                    name: broker.length > 20 ? broker.substring(0, 20) + '...' : broker,
-                    fullName: broker,
-                    total: stats.total,
-                    complete: stats.collectionStatus.Complete || 0,
-                    pending: stats.collectionStatus.Pending || 0,
-                    escalated: stats.collectionStatus.Escalated || 0,
-                    completionRate: parseFloat(stats.completionRate),
-                    carriers: stats.carriers,
-                    eligibleLives: stats.eligibleLives
-                }))
-                .sort((a, b) => b.total - a.total);
-
-            const topCarriersData = Object.entries(dashboardData.carrierStats)
-                .map(([carrier, stats]) => ({
-                    name: carrier,
-                    total: stats.total,
-                    completionRate: parseFloat(stats.completionRate),
-                    brokers: stats.brokers
-                }))
-                .sort((a, b) => b.total - a.total)
-                .slice(0, 10);
-
-            const pieColors = [colors.primary, colors.warning, colors.secondary, colors.success, colors.purple];
-
-            return (
-                <div className="dashboard-container">
-                    {/* Header */}
-                    <div className="bg-white shadow-sm border-b" style={{ borderBottomColor: colors.primary }}>
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between items-center py-6">
-                                <div>
-                                    <h1 className="text-3xl font-bold threeflow-secondary">
-                                        Managed by Three Flow Pilot
-                                    </h1>
-                                    <p className="text-gray-600 mt-1">Document Collection Progress Dashboard</p>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <select
-                                        value={selectedBroker}
-                                        onChange={(e) => setSelectedBroker(e.target.value)}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent ring-threeflow-primary"
-                                    >
-                                        <option value="All Brokers">All Brokers</option>
-                                        {Object.keys(dashboardData.brokerStats).map(broker => (
-                                            <option key={broker} value={broker}>{broker}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {/* Key Metrics */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                            <MetricCard
-                                title="Total Tasks"
-                                value={dashboardData.overallStats.totalTasks.toLocaleString()}
-                                subtitle="Active collection tasks"
-                                icon={FileText}
-                                color={colors.primary}
-                            />
-                            <MetricCard
-                                title="Completion Rate"
-                                value={`${((dashboardData.overallStats.collectionStatus.Complete || 0) / dashboardData.overallStats.totalTasks * 100).toFixed(1)}%`}
-                                subtitle={`${dashboardData.overallStats.collectionStatus.Complete || 0} completed`}
-                                icon={CheckCircle}
-                                color={colors.success}
-                            />
-                            <MetricCard
-                                title="Active Brokers"
-                                value={dashboardData.overallStats.totalBrokers}
-                                subtitle="Partner organizations"
-                                icon={Users}
-                                color={colors.secondary}
-                            />
-                            <MetricCard
-                                title="Eligible Lives"
-                                value={dashboardData.overallStats.totalEligibleLives.toLocaleString()}
-                                subtitle="Total covered individuals"
-                                icon={Calendar}
-                                color={colors.purple}
-                            />
-                        </div>
-
-                        {/* Alert Section */}
-                        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 mb-8">
-                            <div className="flex items-center mb-4">
-                                <AlertCircle color={colors.warning} size={24} style={{ marginRight: '12px' }} />
-                                <h3 className="text-lg font-semibold text-gray-900">Key Insights & Action Items</h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <p className="font-medium mb-2 threeflow-secondary">⚠️ Priority Actions:</p>
-                                    <ul className="space-y-1 text-gray-700">
-                                        <li>• 50.2% tasks still "Not Started" - need acceleration</li>
-                                        <li>• 242 tasks escalated - require immediate attention</li>
-                                        <li>• Focus on top 3 brokers handling 80% of volume</li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <p className="font-medium mb-2 threeflow-success">✅ Successes:</p>
-                                    <ul className="space-y-1 text-gray-700">
-                                        <li>• 34.3% completion rate (Complete + Broker Provided)</li>
-                                        <li>• Strong engagement with {dashboardData.overallStats.totalCarriers} different carriers</li>
-                                        <li>• {(dashboardData.overallStats.totalEligibleLives / 1000000).toFixed(1)}M+ eligible lives being managed</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Charts Section */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h3 className="text-xl font-semibold mb-4 threeflow-secondary">
-                                    Collection Status Distribution
-                                </h3>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            data={collectionStatusData}
-                                            cx="50%"
-                                            cy="50%"
-                                            labelLine={false}
-                                            label={({name, percentage}) => `${name}: ${percentage}%`}
-                                            outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="value"
-                                        >
-                                            {collectionStatusData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h3 className="text-xl font-semibold mb-4 threeflow-secondary">
-                                    Top Performing Carriers
-                                </h3>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={topCarriersData.slice(0, 8)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={80}
-                                            fontSize={10}
-                                        />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="total" fill={colors.primary} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                        {/* Broker Performance Details */}
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                            <h3 className="text-xl font-semibold mb-6 threeflow-secondary">
-                                Broker Performance Analysis
-                            </h3>
-                            
-                            <div className="space-y-4">
-                                {brokerPerformanceData.slice(0, 8).map((broker, index) => (
-                                    <div key={broker.fullName} className="border rounded-lg p-4">
-                                        <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleBrokerExpansion(broker.fullName)}>
-                                            <div className="flex items-center space-x-4">
-                                                {expandedBrokers.has(broker.fullName) ? 
-                                                    <ChevronDown size={20} color={colors.secondary} /> :
-                                                    <ChevronRight size={20} color={colors.secondary} />
-                                                }
-                                                <div>
-                                                    <h4 className="font-semibold text-lg">{broker.fullName}</h4>
-                                                    <p className="text-gray-600">
-                                                        {broker.total} tasks • {broker.carriers} carriers • {broker.eligibleLives.toLocaleString()} lives
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-2xl font-bold" style={{ color: broker.completionRate > 20 ? colors.success : colors.warning }}>
-                                                    {broker.completionRate}%
-                                                </div>
-                                                <p className="text-gray-500">completion rate</p>
-                                            </div>
-                                        </div>
-                                        
-                                        {expandedBrokers.has(broker.fullName) && (
-                                            <div className="mt-4 pt-4 border-t">
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                                    <div className="text-center p-3 rounded" style={{ backgroundColor: colors.success + '20' }}>
-                                                        <div className="text-xl font-bold threeflow-success">
-                                                            {broker.complete}
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">Complete</div>
-                                                    </div>
-                                                    <div className="text-center p-3 rounded" style={{ backgroundColor: colors.warning + '20' }}>
-                                                        <div className="text-xl font-bold threeflow-warning">
-                                                            {broker.pending}
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">Pending</div>
-                                                    </div>
-                                                    <div className="text-center p-3 rounded" style={{ backgroundColor: colors.secondary + '20' }}>
-                                                        <div className="text-xl font-bold threeflow-secondary">
-                                                            {broker.escalated}
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">Escalated</div>
-                                                    </div>
-                                                    <div className="text-center p-3 rounded" style={{ backgroundColor: colors.purple + '20' }}>
-                                                        <div className="text-xl font-bold threeflow-purple">
-                                                            {broker.carriers}
-                                                        </div>
-                                                        <div className="text-sm text-gray-600">Carriers</div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="w-full bg-gray-200 rounded-full h-3">
-                                                    <div 
-                                                        className="h-3 rounded-full bg-threeflow-primary" 
-                                                        style={{ width: `${broker.completionRate}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer */}
-                    <footer className="bg-white border-t mt-12 py-8">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between items-center">
-                                <p className="text-gray-500">
-                                    Last updated: {new Date().toLocaleDateString()} | Data source: ThreeFlow Workspace
-                                </p>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-4 h-4 rounded bg-threeflow-primary"></div>
-                                    <span className="text-sm text-gray-600">ThreeFlow</span>
-                                </div>
-                            </div>
-                        </div>
-                    </footer>
-                </div>
-            );
+        // Overall statistics
+        const overallStats = {
+          totalTasks: data.length,
+          collectionStatus: _.countBy(data, 'Collection Status (drop down)'),
+          renewalStatus: _.countBy(data, 'Renewal Doc Status (drop down)'),
+          taskStatus: _.countBy(data, 'Status'),
+          totalBrokers: Object.keys(brokerStats).length,
+          totalCarriers: Object.keys(carrierStats).length,
+          totalEligibleLives: _.sumBy(data, t => t['Eligible Lives (number)'] || 0)
         };
 
-        // Render the dashboard
-        ReactDOM.render(<ThreeFlowDashboard />, document.getElementById('dashboard-root'));
-    </script>
-</body>
-</html>
+        setDashboardData({
+          rawData: data,
+          brokerStats,
+          carrierStats,
+          overallStats,
+          renewalByMonth
+        });
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Compute filtered data based on selected broker
+  const filteredData = useMemo(() => {
+    if (!dashboardData || selectedBroker === 'All Brokers') {
+      return dashboardData;
+    }
+    
+    const filtered = dashboardData.rawData.filter(row => row['Broker (drop down)'] === selectedBroker);
+    return {
+      ...dashboardData,
+      filteredRawData: filtered,
+      filteredStats: {
+        totalTasks: filtered.length,
+        collectionStatus: filtered.reduce((acc, row) => {
+          const status = row['Collection Status (drop down)'];
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {})
+      }
+    };
+  }, [dashboardData, selectedBroker]);
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" style={{ fontFamily: 'Lato, sans-serif' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.primary }}></div>
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Prepare chart data
+  const collectionStatusData = Object.entries(dashboardData.overallStats.collectionStatus).map(([status, count]) => ({
+    name: status,
+    value: count,
+    percentage: (count / dashboardData.overallStats.totalTasks * 100).toFixed(1)
+  }));
+
+  const brokerPerformanceData = Object.entries(dashboardData.brokerStats)
+    .map(([broker, stats]) => ({
+      name: broker.length > 20 ? broker.substring(0, 20) + '...' : broker,
+      fullName: broker,
+      total: stats.total,
+      complete: stats.collectionStatus.Complete || 0,
+      pending: stats.collectionStatus.Pending || 0,
+      escalated: stats.collectionStatus.Escalated || 0,
+      completionRate: parseFloat(stats.completionRate),
+      carriers: stats.carriers,
+      eligibleLives: stats.eligibleLives
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const topCarriersData = Object.entries(dashboardData.carrierStats)
+    .map(([carrier, stats]) => ({
+      name: carrier,
+      total: stats.total,
+      completionRate: parseFloat(stats.completionRate),
+      brokers: stats.brokers
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const pieColors = [colors.primary, colors.warning, colors.secondary, colors.success, colors.purple];
+
+  const toggleBrokerExpansion = (broker) => {
+    const newExpanded = new Set(expandedBrokers);
+    if (newExpanded.has(broker)) {
+      newExpanded.delete(broker);
+    } else {
+      newExpanded.add(broker);
+    }
+    setExpandedBrokers(newExpanded);
+  };
+
+  const MetricCard = ({ title, value, subtitle, icon: Icon, color, change }) => (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: color }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+        </div>
+        <div className="flex flex-col items-center">
+          <Icon size={32} style={{ color }} />
+          {change && (
+            <div className="flex items-center mt-2">
+              <TrendingUp size={16} style={{ color: change > 0 ? colors.success : colors.warning }} />
+              <span className="text-sm font-medium" style={{ color: change > 0 ? colors.success : colors.warning }}>
+                {change > 0 ? '+' : ''}{change}%
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50" style={{ fontFamily: 'Lato, sans-serif' }}>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b" style={{ borderBottomColor: colors.primary }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold" style={{ color: colors.secondary }}>
+                Managed by Three Flow Pilot
+              </h1>
+              <p className="text-gray-600 mt-1">Document Collection Progress Dashboard</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={selectedBroker}
+                onChange={(e) => setSelectedBroker(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                style={{ focusRingColor: colors.primary }}
+              >
+                <option value="All Brokers">All Brokers</option>
+                {Object.keys(dashboardData.brokerStats).map(broker => (
+                  <option key={broker} value={broker}>{broker}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard
+            title="Total Tasks"
+            value={dashboardData.overallStats.totalTasks.toLocaleString()}
+            subtitle="Active collection tasks"
+            icon={FileText}
+            color={colors.primary}
+          />
+          <MetricCard
+            title="Completion Rate"
+            value={`${((dashboardData.overallStats.collectionStatus.Complete || 0) / dashboardData.overallStats.totalTasks * 100).toFixed(1)}%`}
+            subtitle={`${dashboardData.overallStats.collectionStatus.Complete || 0} completed`}
+            icon={CheckCircle}
+            color={colors.success}
+          />
+          <MetricCard
+            title="Active Brokers"
+            value={dashboardData.overallStats.totalBrokers}
+            subtitle="Partner organizations"
+            icon={Users}
+            color={colors.secondary}
+          />
+          <MetricCard
+            title="Eligible Lives"
+            value={dashboardData.overallStats.totalEligibleLives.toLocaleString()}
+            subtitle="Total covered individuals"
+            icon={Calendar}
+            color={colors.purple}
+          />
+        </div>
+
+        {/* Alert Section - Key Insights */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <AlertCircle className="mr-3" style={{ color: colors.warning }} size={24} />
+            <h3 className="text-lg font-semibold text-gray-900">Key Insights & Action Items</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-medium mb-2" style={{ color: colors.secondary }}>⚠️ Priority Actions:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li>• 50.2% tasks still "Not Started" - need acceleration</li>
+                <li>• 242 tasks escalated - require immediate attention</li>
+                <li>• Focus on top 3 brokers handling 80% of volume</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium mb-2" style={{ color: colors.success }}>✅ Successes:</p>
+              <ul className="space-y-1 text-gray-700">
+                <li>• 34.3% completion rate (Complete + Broker Provided)</li>
+                <li>• Strong engagement with 72 different carriers</li>
+                <li>• 1.2M+ eligible lives being managed</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Collection Status Overview */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Collection Status Distribution
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={collectionStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({name, percentage}) => `${name}: ${percentage}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {collectionStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Top Performing Carriers
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topCarriersData.slice(0, 8)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={10}
+                />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="total" fill={colors.primary} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Broker Performance Details */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h3 className="text-xl font-semibold mb-6" style={{ color: colors.secondary }}>
+            Broker Performance Analysis
+          </h3>
+          
+          <div className="space-y-4">
+            {brokerPerformanceData.map((broker, index) => (
+              <div key={broker.fullName} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleBrokerExpansion(broker.fullName)}>
+                  <div className="flex items-center space-x-4">
+                    {expandedBrokers.has(broker.fullName) ? 
+                      <ChevronDown size={20} style={{ color: colors.secondary }} /> :
+                      <ChevronRight size={20} style={{ color: colors.secondary }} />
+                    }
+                    <div>
+                      <h4 className="font-semibold text-lg">{broker.fullName}</h4>
+                      <p className="text-gray-600">
+                        {broker.total} tasks • {broker.carriers} carriers • {broker.eligibleLives.toLocaleString()} lives
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold" style={{ color: broker.completionRate > 20 ? colors.success : colors.warning }}>
+                      {broker.completionRate}%
+                    </div>
+                    <p className="text-gray-500">completion rate</p>
+                  </div>
+                </div>
+                
+                {expandedBrokers.has(broker.fullName) && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.success + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.success }}>
+                          {broker.complete}
+                        </div>
+                        <div className="text-sm text-gray-600">Complete</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.warning + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.warning }}>
+                          {broker.pending}
+                        </div>
+                        <div className="text-sm text-gray-600">Pending</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.secondary + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.secondary }}>
+                          {broker.escalated}
+                        </div>
+                        <div className="text-sm text-gray-600">Escalated</div>
+                      </div>
+                      <div className="text-center p-3 rounded" style={{ backgroundColor: colors.purple + '20' }}>
+                        <div className="text-xl font-bold" style={{ color: colors.purple }}>
+                          {broker.carriers}
+                        </div>
+                        <div className="text-sm text-gray-600">Carriers</div>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="h-3 rounded-full" 
+                        style={{ 
+                          width: `${broker.completionRate}%`, 
+                          backgroundColor: colors.primary 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Renewal Timeline */}
+        {dashboardData.renewalByMonth && dashboardData.renewalByMonth.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.secondary }}>
+              Renewal Timeline & Collection Status
+            </h3>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={dashboardData.renewalByMonth} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="collected" stackId="1" stroke={colors.success} fill={colors.success} />
+                <Area type="monotone" dataKey="notCollected" stackId="1" stroke={colors.warning} fill={colors.warning} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-12 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center">
+            <p className="text-gray-500">
+              Last updated: {new Date().toLocaleDateString()} | Data source: ThreeFlow Workspace
+            </p>
+            <div className="flex items-center space-x-4">
+              <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.primary }}></div>
+              <span className="text-sm text-gray-600">ThreeFlow</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default ThreeFlowDashboard;
