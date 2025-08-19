@@ -90,6 +90,10 @@
             align-items: center;
         }
         
+        .renewal-select-button:hover {
+            border-color: #00B980;
+        }
+        
         .renewal-dropdown {
             position: absolute;
             top: 100%;
@@ -100,25 +104,45 @@
             border-radius: 8px;
             z-index: 1000;
             display: none;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .renewal-dropdown.show {
+            display: block;
         }
         
         .renewal-option {
-            padding: 10px 16px;
+            padding: 12px 16px;
             cursor: pointer;
             border-bottom: 1px solid #e5e7eb;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+        
+        .renewal-option:last-child {
+            border-bottom: none;
         }
         
         .renewal-option:hover {
-            background-color: #f3f4f6;
+            background-color: #f0f9ff;
         }
         
         .renewal-option input[type="checkbox"] {
             margin: 0;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .renewal-option-label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
         }
         
         .upload-btn {
@@ -155,132 +179,6 @@
             background: #fecaca;
             color: #991b1b;
             border: 1px solid #ef4444;
-        }
-        
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin: 32px 0;
-        }
-        
-        .metric-card {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 6px solid;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-        
-        .metric-card.primary { border-left-color: #00B980; }
-        .metric-card.success { border-left-color: #1A7848; }
-        .metric-card.secondary { border-left-color: #000099; }
-        .metric-card.purple { border-left-color: #8A288E; }
-        
-        .metric-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-        
-        .metric-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-        }
-        
-        .metric-icon.primary { background-color: #00B980; }
-        .metric-icon.success { background-color: #1A7848; }
-        .metric-icon.secondary { background-color: #000099; }
-        .metric-icon.purple { background-color: #8A288E; }
-        
-        .metric-title {
-            color: #6b7280;
-            font-size: 0.875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
-        }
-        
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .metric-subtitle {
-            color: #6b7280;
-            font-size: 0.875rem;
-        }
-        
-        /* Renewal Timeline Section */
-        .renewal-section {
-            background: white;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin: 40px 0;
-        }
-        
-        .renewal-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-top: 24px;
-        }
-        
-        .renewal-item {
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            border-radius: 8px;
-            padding: 20px;
-            border-left: 4px solid #00B980;
-            transition: transform 0.2s ease;
-        }
-        
-        .renewal-item:hover {
-            transform: translateY(-2px);
-        }
-        
-        .renewal-month {
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-        
-        .renewal-stats {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-        
-        .renewal-progress {
-            width: 100%;
-            height: 6px;
-            background-color: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        
-        .renewal-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00B980 0%, #1A7848 100%);
-            border-radius: 3px;
-            transition: width 0.5s ease;
         }
         
         /* Repeatable Carriers Alert Section */
@@ -376,6 +274,79 @@
             border-radius: 12px;
             border: 2px solid #10b981;
         }
+        
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin: 32px 0;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 6px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .metric-card.primary { border-left-color: #00B980; }
+        .metric-card.success { border-left-color: #1A7848; }
+        .metric-card.secondary { border-left-color: #000099; }
+        .metric-card.purple { border-left-color: #8A288E; }
+        
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+        
+        .metric-icon.primary { background-color: #00B980; }
+        .metric-icon.success { background-color: #1A7848; }
+        .metric-icon.secondary { background-color: #000099; }
+        .metric-icon.purple { background-color: #8A288E; }
+        
+        .metric-title {
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .metric-subtitle {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        /* Insights Section */
         .insights-section {
             background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
             border: 2px solid #f59e0b;
@@ -548,6 +519,15 @@
         .detail-item.escalated .detail-value { color: #ef4444; }
         .detail-item.carriers .detail-value { color: #8A288E; }
         
+        .chevron {
+            transition: transform 0.3s ease;
+            color: #6b7280;
+        }
+        
+        .chevron.expanded {
+            transform: rotate(90deg);
+        }
+        
         /* Footer */
         .footer {
             background: white;
@@ -572,15 +552,6 @@
             border-radius: 50%;
         }
         
-        .chevron {
-            transition: transform 0.3s ease;
-            color: #6b7280;
-        }
-        
-        .chevron.expanded {
-            transform: rotate(90deg);
-        }
-        
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 { font-size: 2rem; }
@@ -588,7 +559,6 @@
             .insights-grid { grid-template-columns: 1fr; }
             .broker-header { flex-direction: column; text-align: center; gap: 16px; }
             .details-grid { grid-template-columns: repeat(2, 1fr); }
-            .renewal-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -608,30 +578,30 @@
                 </select>
                 
                 <div class="renewal-multi-select">
-                    <div class="renewal-select-button" onclick="toggleRenewalDropdown()">
+                    <div class="renewal-select-button" onclick="toggleRenewalDropdown(event)">
                         <span id="renewalButtonText">All Renewal Dates</span>
                         <span>▼</span>
                     </div>
                     <div class="renewal-dropdown" id="renewalDropdown">
-                        <div class="renewal-option">
-                            <input type="checkbox" id="all-renewals" value="all" checked onchange="handleRenewalChange()">
-                            <label for="all-renewals">All Renewal Dates</label>
+                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'all-renewals')">
+                            <input type="checkbox" id="all-renewals" value="all" checked>
+                            <span class="renewal-option-label">All Renewal Dates</span>
                         </div>
-                        <div class="renewal-option">
-                            <input type="checkbox" id="oct-1-25" value="october-1-2025" onchange="handleRenewalChange()">
-                            <label for="oct-1-25">October 1, 2025</label>
+                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'oct-1-25')">
+                            <input type="checkbox" id="oct-1-25" value="october-1-2025">
+                            <span class="renewal-option-label">October 1, 2025</span>
                         </div>
-                        <div class="renewal-option">
-                            <input type="checkbox" id="nov-1-25" value="november-1-2025" onchange="handleRenewalChange()">
-                            <label for="nov-1-25">November 1, 2025</label>
+                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'nov-1-25')">
+                            <input type="checkbox" id="nov-1-25" value="november-1-2025">
+                            <span class="renewal-option-label">November 1, 2025</span>
                         </div>
-                        <div class="renewal-option">
-                            <input type="checkbox" id="dec-1-25" value="december-1-2025" onchange="handleRenewalChange()">
-                            <label for="dec-1-25">December 1, 2025</label>
+                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'dec-1-25')">
+                            <input type="checkbox" id="dec-1-25" value="december-1-2025">
+                            <span class="renewal-option-label">December 1, 2025</span>
                         </div>
-                        <div class="renewal-option">
-                            <input type="checkbox" id="jan-1-26" value="january-1-2026" onchange="handleRenewalChange()">
-                            <label for="jan-1-26">January 1, 2026</label>
+                        <div class="renewal-option" onclick="toggleRenewalOption(event, 'jan-1-26')">
+                            <input type="checkbox" id="jan-1-26" value="january-1-2026">
+                            <span class="renewal-option-label">January 1, 2026</span>
                         </div>
                     </div>
                 </div>
@@ -640,11 +610,13 @@
     </div>
 
     <div class="container">
-        <!-- Renewal Timeline -->
-        <div class="renewal-section">
-            <h2 class="section-title">Renewal Timeline Analysis</h2>
-            <div class="renewal-grid" id="renewalGrid">
-                <!-- Renewal data will be populated here -->
+        <!-- Repeatable Carriers Alert -->
+        <div class="repeatable-carriers-section">
+            <div class="repeatable-carriers-title">
+                🚨 Repeatable Carriers Alert
+            </div>
+            <div id="carrierAlertContainer">
+                <!-- Carrier alerts will be populated here -->
             </div>
         </div>
 
@@ -692,16 +664,6 @@
                     </div>
                     <div class="metric-icon purple">🏥</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Repeatable Carriers Alert -->
-        <div class="repeatable-carriers-section">
-            <div class="repeatable-carriers-title">
-                🚨 Repeatable Carriers Alert
-            </div>
-            <div id="carrierAlertContainer">
-                <!-- Carrier alerts will be populated here -->
             </div>
         </div>
 
@@ -764,23 +726,29 @@
         document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
         
         // Renewal multi-select functions
-        function toggleRenewalDropdown() {
+        function toggleRenewalDropdown(event) {
+            event.stopPropagation();
             const dropdown = document.getElementById('renewalDropdown');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            dropdown.classList.toggle('show');
+        }
+        
+        function toggleRenewalOption(event, checkboxId) {
+            event.stopPropagation();
+            const checkbox = document.getElementById(checkboxId);
+            checkbox.checked = !checkbox.checked;
+            handleRenewalChange();
         }
         
         function handleRenewalChange() {
-            const checkboxes = document.querySelectorAll('#renewalDropdown input[type="checkbox"]');
             const allCheckbox = document.getElementById('all-renewals');
             const otherCheckboxes = document.querySelectorAll('#renewalDropdown input[type="checkbox"]:not(#all-renewals)');
             
-            // If "All" is checked, uncheck others
+            // If "All" was just checked, uncheck others
             if (allCheckbox.checked) {
                 otherCheckboxes.forEach(cb => cb.checked = false);
                 selectedRenewalDates = ['all'];
             } else {
-                // If any specific date is checked, uncheck "All"
-                allCheckbox.checked = false;
+                // Get selected specific dates
                 selectedRenewalDates = Array.from(otherCheckboxes)
                     .filter(cb => cb.checked)
                     .map(cb => cb.value);
@@ -817,8 +785,9 @@
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const multiSelect = document.querySelector('.renewal-multi-select');
+            const dropdown = document.getElementById('renewalDropdown');
             if (!multiSelect.contains(event.target)) {
-                document.getElementById('renewalDropdown').style.display = 'none';
+                dropdown.classList.remove('show');
             }
         });
         
@@ -859,9 +828,7 @@
         }
         
         function processCSVData(data) {
-            // Process broker statistics
             const brokerGroups = {};
-            const renewalGroups = {};
             const overallStats = {
                 totalTasks: data.length,
                 completed: 0,
@@ -877,7 +844,6 @@
                 const carrier = row['Carrier (short text)'] || 'Unknown';
                 const collectionStatus = row['Collection Status (drop down)'] || 'Unknown';
                 const renewalStatus = row['Renewal Doc Status (drop down)'] || 'Unknown';
-                const renewalDate = row['Renewal date (date)'] || '';
                 const eligibleLives = parseInt(row['Eligible Lives (number)']) || 0;
                 
                 // Track overall stats
@@ -919,40 +885,10 @@
                     case 'Broker Provided': brokerGroups[broker].brokerProvided++; break;
                     case 'Not started': brokerGroups[broker].notStarted++; break;
                 }
-                
-                // Group by renewal date (extract year-month)
-                if (renewalDate) {
-                    const dateMatch = renewalDate.match(/(\w+)\s+\d+\w*\s+(\d{4})/);
-                    if (dateMatch) {
-                        const month = dateMatch[1];
-                        const year = dateMatch[2];
-                        const key = `${year}-${month}`;
-                        
-                        if (!renewalGroups[key]) {
-                            renewalGroups[key] = {
-                                period: `${month} ${year}`,
-                                total: 0,
-                                collected: 0,
-                                notCollected: 0,
-                                tasks: []
-                            };
-                        }
-                        
-                        renewalGroups[key].total++;
-                        renewalGroups[key].tasks.push(row);
-                        
-                        if (renewalStatus === 'Renewal Collected') {
-                            renewalGroups[key].collected++;
-                        } else {
-                            renewalGroups[key].notCollected++;
-                        }
-                    }
-                }
             });
             
             return {
                 brokers: Object.values(brokerGroups),
-                renewals: Object.values(renewalGroups).sort((a, b) => a.period.localeCompare(b.period)),
                 overall: {
                     ...overallStats,
                     brokers: overallStats.brokers.size,
@@ -990,26 +926,6 @@
                 option.value = broker.name;
                 option.textContent = broker.name;
                 select.appendChild(option);
-            });
-        }
-        
-        function updateRenewalTimeline() {
-            const container = document.getElementById('renewalGrid');
-            container.innerHTML = '';
-            
-            processedData.renewals.slice(0, 12).forEach(renewal => {
-                const collectionRate = (renewal.collected / renewal.total * 100).toFixed(1);
-                
-                const item = document.createElement('div');
-                item.className = 'renewal-item';
-                item.innerHTML = `
-                    <div class="renewal-month">${renewal.period}</div>
-                    <div class="renewal-stats">${renewal.total} renewals • ${renewal.collected} collected</div>
-                    <div class="renewal-progress">
-                        <div class="renewal-progress-fill" style="width: ${collectionRate}%"></div>
-                    </div>
-                `;
-                container.appendChild(item);
             });
         }
         
@@ -1368,7 +1284,7 @@
             
             // Animate progress bars
             setTimeout(() => {
-                const progressBars = document.querySelectorAll('.progress-fill, .renewal-progress-fill');
+                const progressBars = document.querySelectorAll('.progress-fill');
                 progressBars.forEach(bar => {
                     const width = bar.style.width;
                     bar.style.width = '0%';
